@@ -188,3 +188,174 @@ h1, h2, h3, h4, h5, h6 {
     color: #ffb74d !important;
     text-decoration: underline !important;
 }
+
+/* ==========================================================
+   MENU DA EQUIPE (usuário logado)
+   ========================================================== */
+.cf-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #1e1e24;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.cf-perfil {
+    font-size: 0.72rem;
+    color: #ffb74d;
+    font-weight: 600;
+}
+.navbar .nav-link.active {
+    border-bottom: 2px solid #ffb74d;
+}
+.navbar .dropdown-menu .dropdown-item {
+    font-weight: 500;
+}
+
+/* ==========================================================
+   PÁGINA INICIAL
+   ========================================================== */
+.cf-destaque { color: var(--primary) !important; }
+.cf-selo {
+    background: #fff3e0;
+    color: #b23c00;
+    border: 1px solid #ffcc80;
+}
+.cf-features {
+    background: #ffffff;
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    margin-left: 0;
+    margin-right: 0;
+}
+.cf-feature-icon {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    background: #fff3e0;
+    color: var(--primary);
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.cf-feature-text {
+    font-size: 0.8rem;
+    color: #5f6368;
+}
+
+/* Linha do tempo de exemplo */
+.cf-timeline {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    gap: 0.5rem;
+}
+.cf-timeline::before {
+    content: "";
+    position: absolute;
+    top: 24px;
+    left: 10%;
+    right: 10%;
+    height: 3px;
+    background: var(--card-border);
+    z-index: 0;
+}
+.cf-etapa {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+.cf-etapa-icone {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 0.5rem;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid var(--card-border);
+    color: #8a8f98;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.cf-etapa-nome {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #5f6368;
+}
+.cf-etapa.ativa .cf-etapa-icone {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #ffffff;
+}
+.cf-etapa.ativa .cf-etapa-nome { color: var(--primary); }
+
+/* Cardápio */
+.cf-sabor {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.cf-sabor:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg) !important;
+}
+.cf-sabor-topo {
+    background: linear-gradient(135deg, #ffb74d 0%, #e65100 100%);
+    color: #ffffff;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.cf-sabor-topo i { font-size: 1.6rem; opacity: 0.9; }
+.cf-sabor-nome { font-size: 1.25rem; font-weight: 800; }
+.cf-chip {
+    background: #fff3e0;
+    color: #8a3a00;
+    border: 1px solid #ffcc80;
+    border-radius: 999px;
+    padding: 0.2rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+.cf-sabor-livre {
+    border: 2px dashed #ffcc80 !important;
+    background: #fffaf3 !important;
+    color: var(--primary);
+}
+
+/* ==========================================================
+   COZINHA (KDS)
+   ========================================================== */
+.ticket-kds .card-header.kds-header {
+    background: #1e1e24 !important;
+    color: #ffffff !important;
+    border-bottom: 3px solid var(--primary) !important;
+}
+.badge-adicionar {
+    background: #e8f5e9;
+    color: #1b5e20;
+    border: 1px solid #a5d6a7;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+.badge-remover {
+    background: #ffebee;
+    color: #b71c1c;
+    border: 1px solid #ef9a9a;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+/* Cabeçalho escuro das tabelas (a regra .table th acima deixava o fundo transparente) */
+.table thead.table-dark th {
+    background-color: #1e1e24 !important;
+    color: #ffffff !important;
+    border-color: #1e1e24 !important;
+}
