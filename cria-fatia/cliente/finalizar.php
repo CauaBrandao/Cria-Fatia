@@ -204,48 +204,11 @@ require_once __DIR__ . '/../includes/header.php';
                         </div>
                     </div>
 
-                    <!-- Painel Pix: QR Code simulado + chave -->
                     <div id="painel_pix" class="mb-4 p-4 rounded-4 border border-success bg-light">
                         <h6 class="fw-bold text-success mb-3"><i class="bi bi-qr-code-scan me-2"></i>Pagamento via Pix</h6>
-                        <div class="row align-items-center g-3">
-                            <div class="col-md-4 text-center">
-                                <!-- QR Code visual simulado (imagem gerada como padrão visual) -->
-                                <div class="d-inline-block p-2 bg-white border rounded-3 shadow-sm mb-2">
-                                    <svg width="140" height="140" viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <rect width="140" height="140" fill="white"/>
-                                        <rect x="10" y="10" width="40" height="40" fill="black"/><rect x="15" y="15" width="30" height="30" fill="white"/><rect x="20" y="20" width="20" height="20" fill="black"/>
-                                        <rect x="90" y="10" width="40" height="40" fill="black"/><rect x="95" y="15" width="30" height="30" fill="white"/><rect x="100" y="20" width="20" height="20" fill="black"/>
-                                        <rect x="10" y="90" width="40" height="40" fill="black"/><rect x="15" y="95" width="30" height="30" fill="white"/><rect x="20" y="100" width="20" height="20" fill="black"/>
-                                        <rect x="60" y="10" width="10" height="10" fill="black"/><rect x="60" y="30" width="10" height="10" fill="black"/>
-                                        <rect x="10" y="60" width="10" height="10" fill="black"/><rect x="30" y="60" width="10" height="10" fill="black"/><rect x="50" y="60" width="10" height="10" fill="black"/>
-                                        <rect x="70" y="60" width="10" height="10" fill="black"/><rect x="90" y="60" width="10" height="10" fill="black"/><rect x="110" y="60" width="10" height="10" fill="black"/>
-                                        <rect x="70" y="70" width="10" height="10" fill="black"/><rect x="80" y="80" width="10" height="10" fill="black"/><rect x="100" y="80" width="10" height="10" fill="black"/>
-                                        <rect x="70" y="90" width="10" height="10" fill="black"/><rect x="90" y="100" width="10" height="10" fill="black"/><rect x="110" y="90" width="10" height="10" fill="black"/>
-                                        <rect x="60" y="110" width="10" height="10" fill="black"/><rect x="80" y="110" width="10" height="10" fill="black"/><rect x="100" y="110" width="10" height="10" fill="black"/>
-                                        <rect x="70" y="120" width="10" height="10" fill="black"/><rect x="90" y="120" width="10" height="10" fill="black"/>
-                                        <rect x="60" y="70" width="10" height="10" fill="black"/>
-                                    </svg>
-                                </div>
-                                <div class="small text-muted">Escaneie com o app do seu banco</div>
-                            </div>
-                            <div class="col-md-8">
-                                <p class="text-muted small mb-2">Ou copie a chave Pix abaixo e pague pelo app do banco:</p>
-                                <div class="input-group mb-3">
-                                    <input type="text" class="form-control fw-bold font-monospace" id="pixKey" value="criafatia@pizzalab.com.br" readonly>
-                                    <button type="button" class="btn btn-success" onclick="copiarPix()">
-                                        <i class="bi bi-clipboard me-1"></i> Copiar
-                                    </button>
-                                </div>
-                                <div class="d-flex flex-column gap-1 small text-muted">
-                                    <span><i class="bi bi-person-fill text-success me-1"></i> <strong>Favorecido:</strong> Cria Fatia – Pizza Lab & Co.</span>
-                                    <span><i class="bi bi-bank2 text-success me-1"></i> <strong>Banco:</strong> Bradesco</span>
-                                    <span><i class="bi bi-shield-check text-success me-1"></i> Chave Pix verificada e segura</span>
-                                </div>
-                                <div id="pix_copiado" class="alert alert-success py-1 px-2 mt-2 small d-none"><i class="bi bi-check-circle me-1"></i> Chave copiada com sucesso!</div>
-                            </div>
-                        </div>
-                        <div class="alert alert-warning mt-3 mb-0 py-2 small">
-                            <i class="bi bi-exclamation-triangle me-1"></i> <strong>Atenção:</strong> Após o pagamento, envie o comprovante via WhatsApp para agilizar a confirmação do seu pedido.
+                        <div class="alert alert-warning mb-0" role="status">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            O Pix não é processado nem confirmado por este sistema. Antes de pagar, confirme a chave e o valor diretamente com a equipe da pizzaria. Não use QR Codes ou chaves recebidos fora dessa confirmação.
                         </div>
                     </div>
 
@@ -366,27 +329,6 @@ function atualizarFormaPagamento(tipo) {
     // Limpar troco se não for dinheiro
     const trocoInput = document.getElementById('troco_input');
     if (trocoInput && tipo !== 'dinheiro') trocoInput.value = '';
-}
-
-function copiarPix() {
-    const key = document.getElementById('pixKey');
-    const msg = document.getElementById('pix_copiado');
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(key.value).then(() => {
-            msg.classList.remove('d-none');
-            setTimeout(() => msg.classList.add('d-none'), 3000);
-        }).catch(() => {
-            key.select();
-            document.execCommand('copy');
-            msg.classList.remove('d-none');
-            setTimeout(() => msg.classList.add('d-none'), 3000);
-        });
-    } else {
-        key.select();
-        document.execCommand('copy');
-        msg.classList.remove('d-none');
-        setTimeout(() => msg.classList.add('d-none'), 3000);
-    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -945,22 +945,9 @@ require_once __DIR__ . '/../includes/header.php';
                             </h5>
 
                             <?php if (($pedido['forma_pagamento'] ?? 'pix') === 'pix'): ?>
-                                <?php
-                                $pixPayload = "00020126580014br.gov.bcb.pix0136bellaroza-pix-cf@cria-fatia.com5204000053039865405" . number_format($pedido['valor_total'], 2, '.', '') . "5802BR5919BELLA ROZA PIZZARIA6009SAO PAULO62070503" . $pedido['codigo_acompanhamento'] . "6304";
-                                ?>
-                                <div class="bg-light p-4 rounded-3 text-center border">
-                                    <h6 class="fw-bold text-dark mb-1"><i class="bi bi-qr-code me-1 text-success"></i> Pague com Pix Instantâneo</h6>
-                                    <p class="text-muted small mb-3">Aponte a câmera do aplicativo do seu banco ou use o Copia e Cola:</p>
-                                    <div class="d-inline-block bg-white p-2 rounded border shadow-sm mb-3">
-                                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=<?= urlencode($pixPayload) ?>" alt="QR Code Pix" class="img-fluid" style="width: 170px; height: 170px;">
-                                    </div>
-                                    <div class="input-group">
-                                        <input type="text" id="pixCodeInput" class="form-control form-control-sm text-center font-monospace" value="<?= htmlspecialchars($pixPayload) ?>" readonly>
-                                        <button class="btn btn-warning btn-sm fw-bold px-3 text-dark" type="button" onclick="copiarPix()">
-                                            <i class="bi bi-clipboard-check me-1"></i> <span id="pixBtnText">Copiar Pix</span>
-                                        </button>
-                                    </div>
-                                    <div class="text-muted small mt-2"><i class="bi bi-shield-check text-success me-1"></i> Chave Pix cadastrada: <strong>bellaroza-pix-cf@cria-fatia.com</strong></div>
+                                <div class="alert alert-warning mb-0">
+                                    <strong>Pix não confirmado pelo sistema.</strong>
+                                    Confirme a chave e o valor diretamente com a equipe antes de realizar qualquer pagamento. Este pedido só registra a forma de pagamento escolhida.
                                 </div>
                             <?php elseif (($pedido['forma_pagamento'] ?? '') === 'dinheiro'): ?>
                                 <div class="alert alert-warning mb-0 p-3">
@@ -1247,21 +1234,6 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 
 <script>
-function copiarPix() {
-    const input = document.getElementById('pixCodeInput');
-    if (!input) return;
-    navigator.clipboard.writeText(input.value).then(() => {
-        const btn = document.getElementById('pixBtnText');
-        if (btn) {
-            btn.textContent = 'Copiado!';
-            setTimeout(() => btn.textContent = 'Copiar Pix', 2500);
-        }
-    }).catch(() => {
-        input.select();
-        document.execCommand('copy');
-    });
-}
-
 <?php if ($pedido && in_array($statusAtual, ['pendente', 'em_producao', 'pronto'])): ?>
 let pollSec = 15;
 setInterval(() => {

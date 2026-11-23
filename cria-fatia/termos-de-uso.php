@@ -25,7 +25,7 @@ require_once __DIR__ . '/includes/header.php';
 
             <h5 class="fw-bold mt-4 text-dark">3. Pagamentos e Cobrança</h5>
             <p>
-                Aceitamos pagamentos via <strong>Pix</strong> (com confirmação instantânea do comprovante), <strong>Cartão</strong> (na entrega ou balcão) e <strong>Dinheiro</strong> (com troco informado no ato do pedido).
+                O sistema registra a forma de pagamento escolhida. O pagamento via <strong>Pix</strong> não é processado nem confirmado automaticamente; confirme a chave e o valor diretamente com a equipe antes de pagar. <strong>Cartão</strong> e <strong>Dinheiro</strong> são combinados na entrega ou retirada.
             </p>
 
             <h5 class="fw-bold mt-4 text-dark">4. Natureza do Projeto</h5>
@@ -48,4 +48,3 @@ require_once __DIR__ . '/includes/header.php';
 <?php
 require_once __DIR__ . '/includes/footer.php';
 ?>
-

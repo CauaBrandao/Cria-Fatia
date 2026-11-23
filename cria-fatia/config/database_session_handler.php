@@ -2,13 +2,11 @@
 
 final class DatabaseSessionHandler implements SessionHandlerInterface
 {
-    public function __construct(private PDO $pdo)
+    private PDO $pdo;
+
+    public function __construct(PDO $pdo)
     {
-        $this->pdo->exec(
-            'CREATE TABLE IF NOT EXISTS php_sessions (' .
-            'id VARCHAR(128) PRIMARY KEY, data MEDIUMBLOB NOT NULL, updated_at INT UNSIGNED NOT NULL' .
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
-        );
+        $this->pdo = $pdo;
     }
 
     public function open(string $path, string $name): bool { return true; }

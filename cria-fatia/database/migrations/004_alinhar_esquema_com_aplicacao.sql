@@ -3,9 +3,9 @@ ALTER TABLE tamanhos ADD COLUMN IF NOT EXISTS descricao TEXT DEFAULT NULL;
 ALTER TABLE tamanhos ADD COLUMN IF NOT EXISTS quantidade_fatias INT NOT NULL DEFAULT 0;
 ALTER TABLE tamanhos ADD COLUMN IF NOT EXISTS disponivel TINYINT(1) NOT NULL DEFAULT 1;
 
-UPDATE tamanhos SET quantidade_fatias = 4 WHERE id = 1;
-UPDATE tamanhos SET quantidade_fatias = 6 WHERE id = 2;
-UPDATE tamanhos SET quantidade_fatias = 8 WHERE id = 3;
+UPDATE tamanhos SET quantidade_fatias = 4 WHERE id = 1 AND quantidade_fatias = 0;
+UPDATE tamanhos SET quantidade_fatias = 6 WHERE id = 2 AND quantidade_fatias = 0;
+UPDATE tamanhos SET quantidade_fatias = 8 WHERE id = 3 AND quantidade_fatias = 0;
 
 ALTER TABLE ingredientes ADD COLUMN IF NOT EXISTS descricao TEXT DEFAULT NULL;
 ALTER TABLE ingredientes ADD COLUMN IF NOT EXISTS categoria VARCHAR(100) DEFAULT NULL;

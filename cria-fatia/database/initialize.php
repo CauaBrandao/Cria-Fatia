@@ -1,4 +1,13 @@
 <?php
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+
+if (($argv[1] ?? '') !== '--apply') {
+    throw new RuntimeException('Execute este utilitário manualmente com: php database/initialize.php --apply');
+}
+
 $databaseUrl = getenv('DATABASE_URL');
 $databaseConfig = $databaseUrl ? parse_url($databaseUrl) : [];
 $host = $databaseConfig['host'] ?? (getenv('TIDB_HOST') ?: getenv('MYSQLHOST') ?: getenv('DB_HOST'));
@@ -14,8 +23,12 @@ if (getenv('TIDB_HOST')) {
     $pdoOptions[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
 }
 
-if (!$host || $password === false || $password === null) {
-    exit(0);
+if ($password === false || $password === null) {
+    $password = '';
+}
+
+if (!$host) {
+    throw new RuntimeException('Configure DB_HOST ou DATABASE_URL antes de inicializar o banco.');
 }
 
 $attempts = 20;

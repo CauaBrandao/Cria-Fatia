@@ -162,9 +162,9 @@ A aplicação está publicada em **<https://cria-fatia-vercel.vercel.app/>**.
 O deploy usa o `Dockerfile` da raiz: uma imagem **PHP 8.4 com FrankenPHP**, que serve a pasta `cria-fatia/` e bloqueia o acesso público a `config/`, `database/`, `includes/` e aos arquivos `.sql` e `.md`. O banco de dados fica em um serviço MySQL externo.
 
 **Como funciona ao iniciar:**
-1. O `vercel-entrypoint.sh` executa `database/initialize.php`.
-2. Se o banco ainda não tiver as tabelas, ele importa automaticamente o `database/cria_fatia.sql` (estrutura e dados iniciais).
-3. O servidor FrankenPHP é iniciado.
+1. O `vercel-entrypoint.sh` inicia somente o servidor FrankenPHP.
+2. O deploy não inicializa nem altera o banco de dados.
+3. Inicialização e migrações são manutenção manual: revise o banco e faça backup antes de executar `php database/initialize.php --apply` em ambiente controlado. Nunca execute esse comando sem validar o alvo, o plano e a compatibilidade das migrações.
 
 As **sessões de login são guardadas no banco** (tabela `php_sessions`), para funcionarem em ambiente serverless, onde não há disco persistente.
 

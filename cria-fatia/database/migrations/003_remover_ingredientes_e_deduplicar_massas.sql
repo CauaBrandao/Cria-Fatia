@@ -1,11 +1,7 @@
--- Retira os itens removidos do catálogo sem apagar o histórico de pedidos antigos.
+-- Retira os itens do catálogo preservando pedidos e relações históricas.
 UPDATE ingredientes
 SET disponivel = 0
 WHERE LOWER(TRIM(nome)) IN ('cereais', 'conhaque');
-
-DELETE FROM ingredientes
-WHERE LOWER(TRIM(nome)) IN ('cereais', 'conhaque')
-  AND id NOT IN (SELECT ingrediente_id FROM pedido_item_customizacoes);
 
 -- Reaponta pedidos para o primeiro cadastro de cada massa antes de remover duplicatas.
 UPDATE pedido_itens pi
