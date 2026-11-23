@@ -42,12 +42,11 @@ $pedidos = $pdo->query("
 $token = gerarCsrfToken();
 ?>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-bold text-danger"><i class="bi bi-fire me-2"></i>Painel da Cozinha (KDS / Ticket Digital)</h2>
+<div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold mb-0"><i class="bi bi-fire me-2 text-danger"></i>Painel da Cozinha <small class="fs-6 text-muted fw-semibold">· <?php echo count(array_unique(array_column($pedidos, 'id'))); ?> pedido(s) na fila</small></h2>
     <div class="d-flex align-items-center gap-2">
-        <button type="button" class="btn btn-sm btn-outline-warning text-dark" onclick="tocarAlerta()"><i class="bi bi-bell-fill me-1"></i> Ouvir Alerta Sonoro</button>
-        <span class="badge bg-dark border text-light"><i class="bi bi-arrow-repeat me-1"></i> Auto-atualização: <span id="kdsTimer">20s</span></span>
-        <a href="index.php" class="btn btn-outline-danger btn-sm"><i class="bi bi-arrow-repeat me-1"></i> Atualizar Tela</a>
+        <button type="button" class="btn btn-sm btn-outline-dark" onclick="tocarAlerta()" title="Testar o alerta sonoro"><i class="bi bi-bell-fill"></i></button>
+        <a href="index.php" class="btn btn-outline-dark btn-sm" title="Atualizar agora"><i class="bi bi-arrow-repeat me-1"></i> Atualiza em <span id="kdsTimer">20s</span></a>
     </div>
 </div>
 
@@ -88,13 +87,13 @@ $token = gerarCsrfToken();
         ?>
             <div class="col-md-6 col-lg-4 mb-4">
                 <div class="card ticket-kds shadow border-0 h-100">
-                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+                    <div class="card-header kds-header d-flex justify-content-between align-items-center py-3">
                         <span class="fs-5 fw-bold">Pedido #<?php echo $p['id']; ?></span>
-                        <span class="badge bg-warning text-dark"><?php echo strtoupper($p['status']); ?></span>
+                        <span class="badge <?php echo $p['status'] === 'em_producao' ? 'bg-info text-dark' : 'bg-warning text-dark'; ?>"><?php echo rotuloStatus($p['status']); ?></span>
                     </div>
                     <div class="card-body p-4">
                         <div class="d-flex justify-content-between gap-2 align-items-start">
-                            <h5 class="fw-bold text-primary mb-2"><?php echo htmlspecialchars($p['tamanho_nome']); ?> - <?php echo strtoupper($p['divisao']); ?></h5>
+                            <h5 class="fw-bold mb-2"><?php echo htmlspecialchars($p['tamanho_nome']); ?><?php echo $p['divisao'] === 'meio_a_meio' ? ' · Meio a meio' : ''; ?></h5>
                             <small class="text-muted text-nowrap"><?php echo date('d/m H:i', strtotime($p['criado_em'])); ?></small>
                         </div>
                         <p class="mb-2"><strong>Cliente:</strong> <?php echo htmlspecialchars($p['cliente_nome']); ?> · <?php echo htmlspecialchars($p['cliente_telefone']); ?></p>
@@ -105,13 +104,11 @@ $token = gerarCsrfToken();
                         <div class="mb-3">
                             <strong class="text-dark d-block mb-1">Ingredientes da pizza:</strong>
                             <?php foreach($customs as $c): if ($c['metade'] == 1): ?>
-                                <div class="my-1">
-                                    <?php if ($c['acao'] === 'remover'): ?>
-                                        <span class="badge badge-remover me-1">SEM <?php echo htmlspecialchars($c['ingrediente_nome']); ?></span>
-                                    <?php else: ?>
-                                        <span class="badge badge-adicionar me-1">+ COM <?php echo htmlspecialchars($c['ingrediente_nome']); ?></span>
-                                    <?php endif; ?>
-                                </div>
+                                <?php if ($c['acao'] === 'remover'): ?>
+                                    <span class="badge badge-remover me-1 mb-1">SEM <?php echo htmlspecialchars($c['ingrediente_nome']); ?></span>
+                                <?php else: ?>
+                                    <span class="badge badge-adicionar me-1 mb-1"><?php echo htmlspecialchars($c['ingrediente_nome']); ?></span>
+                                <?php endif; ?>
                             <?php endif; endforeach; ?>
                             <?php if (empty($customs)): ?><div class="text-muted small">Nenhum ingrediente informado para esta pizza.</div><?php endif; ?>
                         </div>
@@ -182,7 +179,8 @@ setInterval(() => {
     tempoRestante--;
     if (timerEl) timerEl.textContent = tempoRestante + 's';
     if (tempoRestante <= 0) {
-        window.location.reload();
+        // Recarrega via GET (evita reenviar o formulário de "Concluir Produção")
+        window.location.href = 'index.php';
     }
 }, 1000);
 </script>
