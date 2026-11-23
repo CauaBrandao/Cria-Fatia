@@ -187,17 +187,9 @@ Depois, acesse <http://localhost:8080>.
 
 ---
 
-## 🔑 Usuários de teste
+## 🔑 Acesso administrativo
 
-O acesso às áreas internas é feito em `/login.php` — online: <https://cria-fatia-vercel.vercel.app/login.php>. Todos os usuários iniciais usam a senha **`admin123`**.
-
-| Perfil | E-mail | Acesso |
-|---|---|---|
-| **Administrador** | `admin@briafatia.com` | Todas as áreas |
-| **Atendimento** | `atendimento@briafatia.com` | Painel de atendimento, comandas e caixa |
-| **Cozinha** | `cozinha@briafatia.com` | Painel KDS e comandas |
-
-> ⚠️ Essas credenciais são apenas para demonstração. Troque as senhas antes de usar o sistema em um ambiente real.
+O banco não cria contas nem senhas padrão. Na primeira inicialização, um administrador só é criado quando `ADMIN_INITIAL_EMAIL` e `ADMIN_INITIAL_PASSWORD` estão configuradas no ambiente; a senha precisa ter pelo menos 12 caracteres. Não publique nem compartilhe credenciais de ambientes reais.
 
 ---
 
