@@ -244,7 +244,7 @@ A pasta `cria-fatia/database/` guarda os scripts usados ao longo do desenvolvime
 
 Projeto Integrador – 5º semestre · Tecnologia em Sistemas para Internet · **Senac** · 2026
 
-- **Cauã Brandão** 
+- **Cauã Brandão**
 - **Fernando Souza**
 - **Luiz Felipe Rodrigues**
 - **Ricardo Godoy**
