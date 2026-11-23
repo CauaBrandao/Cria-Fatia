@@ -30,7 +30,7 @@ require_once __DIR__ . '/includes/header.php';
 
             <h5 class="fw-bold mt-4 text-dark">4. Natureza do Projeto</h5>
             <p class="mb-4">
-                Este sistema integra as atividades avaliativas do Projeto Integrador Senac – CST em Sistemas para Internet.
+                Este sistema integra as atividades avaliativas do Projeto Integrador Senac – TSI (Tecnologia em Sistemas para Internet).
             </p>
 
             <div class="pt-3 border-top d-flex gap-2">
