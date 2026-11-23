@@ -12,11 +12,11 @@ $pedidosFinalizados = $pdo->query("SELECT COUNT(*) FROM pedidos WHERE status IN 
 
 // Dados para os Gráficos Analíticos (Chart.js)
 $vendasDias = $pdo->query("
-    SELECT DATE_FORMAT(criado_em, '%d/%m') as dia, COUNT(id) as total_pedidos, COALESCE(SUM(valor_total), 0) as faturamento
+    SELECT DATE_FORMAT(MIN(criado_em), '%d/%m') as dia, COUNT(id) as total_pedidos, COALESCE(SUM(valor_total), 0) as faturamento
     FROM pedidos
     WHERE status != 'cancelado'
     GROUP BY DATE(criado_em)
-    ORDER BY DATE(criado_em) ASC
+    ORDER BY MIN(criado_em) ASC
     LIMIT 7
 ")->fetchAll();
 
