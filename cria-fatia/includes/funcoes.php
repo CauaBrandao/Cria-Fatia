@@ -10,6 +10,10 @@ function formatarMoeda($valor) {
     return 'R$ ' . number_format((float)$valor, 2, ',', '.');
 }
 
+function escapar($valor) {
+    return htmlspecialchars((string)$valor, ENT_QUOTES, 'UTF-8');
+}
+
 function gerarCsrfToken() {
     if (empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));

@@ -67,3 +67,23 @@ foreach ($migrations as $migration) {
     $record->execute([$name]);
     fwrite(STDOUT, "Migração aplicada: {$name}\n");
 }
+
+// Cria o primeiro administrador somente quando credenciais seguras são fornecidas.
+$adminEmail = trim((string)getenv('ADMIN_INITIAL_EMAIL'));
+$adminPassword = (string)getenv('ADMIN_INITIAL_PASSWORD');
+$userCount = (int)$pdo->query('SELECT COUNT(*) FROM usuarios')->fetchColumn();
+
+if ($userCount === 0 && $adminEmail !== '' && $adminPassword !== '') {
+    if (!filter_var($adminEmail, FILTER_VALIDATE_EMAIL) || strlen($adminPassword) < 12) {
+        throw new RuntimeException('ADMIN_INITIAL_EMAIL inválido ou ADMIN_INITIAL_PASSWORD com menos de 12 caracteres.');
+    }
+
+    $createAdmin = $pdo->prepare(
+        "INSERT INTO usuarios (nome, email, senha, perfil) VALUES ('Administrador', ?, ?, 'admin')"
+    );
+    $createAdmin->execute([
+        strtolower($adminEmail),
+        password_hash($adminPassword, PASSWORD_DEFAULT),
+    ]);
+    fwrite(STDOUT, "Administrador inicial criado a partir das variáveis de ambiente.\n");
+}

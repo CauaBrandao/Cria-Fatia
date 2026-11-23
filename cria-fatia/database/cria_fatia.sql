@@ -86,12 +86,6 @@ CREATE TABLE IF NOT EXISTS usuarios (
     perfil ENUM('admin', 'atendimento', 'cozinha') NOT NULL DEFAULT 'atendimento'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO usuarios (id, nome, email, senha, perfil) VALUES
-(1, 'Administrador', 'admin@briafatia.com', '$2y$12$zRz0VJfGX7x0lX6z9xQfQ.CrMVE6nGN/aV4psv/jBT7qL/nTdwAk6', 'admin'),
-(2, 'Atendimento Bella Roza', 'atendimento@briafatia.com', '$2y$12$zRz0VJfGX7x0lX6z9xQfQ.CrMVE6nGN/aV4psv/jBT7qL/nTdwAk6', 'atendimento'),
-(3, 'Cozinha Bella Roza', 'cozinha@briafatia.com', '$2y$12$zRz0VJfGX7x0lX6z9xQfQ.CrMVE6nGN/aV4psv/jBT7qL/nTdwAk6', 'cozinha')
-ON DUPLICATE KEY UPDATE nome=VALUES(nome), senha=VALUES(senha), perfil=VALUES(perfil);
-
 -- Table: pedidos
 CREATE TABLE IF NOT EXISTS pedidos (
     id INT AUTO_INCREMENT PRIMARY KEY,

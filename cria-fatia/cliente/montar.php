@@ -1,9 +1,18 @@
 <?php
 require_once __DIR__ . '/../includes/header.php';
-require_once __DIR__ . '/../config/conexao.php';
 
 $tamanhos = $pdo->query("SELECT * FROM tamanhos ORDER BY id ASC")->fetchAll();
-$massas = $pdo->query("SELECT * FROM tipos_massas WHERE disponivel = 1 ORDER BY nome ASC")->fetchAll();
+$massas = $pdo->query("
+    SELECT tm.*
+    FROM tipos_massas tm
+    INNER JOIN (
+        SELECT MIN(id) AS id
+        FROM tipos_massas
+        WHERE disponivel = 1
+        GROUP BY LOWER(TRIM(nome))
+    ) unicas ON unicas.id = tm.id
+    ORDER BY tm.nome ASC
+")->fetchAll();
 $bordas = $pdo->query("SELECT * FROM bordas WHERE disponivel = 1 ORDER BY id ASC")->fetchAll();
 $ingredientes = $pdo->query("SELECT * FROM ingredientes WHERE disponivel = 1 ORDER BY nome ASC")->fetchAll();
 $molhos = $pdo->query("SELECT * FROM molhos WHERE disponivel = 1 ORDER BY nome ASC")->fetchAll();
@@ -48,8 +57,8 @@ $token = gerarCsrfToken();
             </div>
 
             <div class="card mb-4 border-0 shadow-sm rounded-4">
-                <div class="card-header bg-white p-4"><h4 class="mb-1 fw-bold">03. Escolha os ingredientes</h4><small class="text-muted">Marque todos os ingredientes que deseja colocar na sua pizza.</small></div>
-                <div class="card-body p-4"><div class="alert alert-warning small"><i class="bi bi-info-circle me-1"></i> Cada ingrediente selecionado será incluído na montagem e somado ao preço final.</div>
+                <div class="card-header bg-white p-4 d-flex flex-wrap justify-content-between align-items-center gap-2"><div><h4 class="mb-1 fw-bold">03. Escolha os ingredientes</h4><small class="text-muted">Selecione no máximo 8 ingredientes.</small></div><span id="contador_ingredientes" class="badge bg-dark fs-6" aria-live="polite">0/8 ingredientes selecionados</span></div>
+                <div class="card-body p-4"><div id="aviso_limite_ingredientes" class="alert alert-warning small" role="status"><i class="bi bi-info-circle me-1"></i> Cada ingrediente selecionado será incluído na montagem e somado ao preço final.</div>
                     <div class="row g-3">
                     <?php foreach($ingredientes as $ing): ?>
                         <div class="col-md-6"><label class="ingredient-option d-flex align-items-center justify-content-between gap-2 p-3 border rounded-3 h-100 cursor-pointer" for="ingrediente_<?php echo (int)$ing['id']; ?>">
@@ -92,6 +101,30 @@ $token = gerarCsrfToken();
 function selecionarTamanho(el,id){el.closest('.row').querySelectorAll('.selector-card').forEach(x=>x.classList.remove('selected','border-warning','bg-warning','bg-opacity-10'));el.classList.add('selected','border-warning','bg-warning','bg-opacity-10');document.getElementById('tamanho_id').value=id;calcularPrecoTotal();}
 function selecionarMassa(el,id){el.closest('.row').querySelectorAll('.selector-card').forEach(x=>x.classList.remove('selected','border-warning','bg-warning','bg-opacity-10'));el.classList.add('selected','border-warning','bg-warning','bg-opacity-10');document.getElementById('massa_id').value=id;calcularPrecoTotal();}
 function selecionarBorda(el,id){el.closest('.row').querySelectorAll('.selector-card').forEach(x=>x.classList.remove('selected','border-warning','bg-warning','bg-opacity-10'));el.classList.add('selected','border-warning','bg-warning','bg-opacity-10');document.getElementById('borda_id').value=id;calcularPrecoTotal();}
+const LIMITE_INGREDIENTES = 8;
+function atualizarLimiteIngredientes(mostrarAviso = false) {
+    const checkboxes = [...document.querySelectorAll('.ingrediente-checkbox')];
+    const selecionados = checkboxes.filter(x => x.checked);
+    const atingiuLimite = selecionados.length >= LIMITE_INGREDIENTES;
+
+    checkboxes.forEach(x => { x.disabled = atingiuLimite && !x.checked; });
+
+    const contador = document.getElementById('contador_ingredientes');
+    contador.textContent = `${selecionados.length}/${LIMITE_INGREDIENTES} ingredientes selecionados`;
+    contador.classList.toggle('bg-danger', atingiuLimite);
+    contador.classList.toggle('bg-dark', !atingiuLimite);
+
+    const aviso = document.getElementById('aviso_limite_ingredientes');
+    if (atingiuLimite || mostrarAviso) {
+        aviso.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Limite de 8 ingredientes atingido. Desmarque um ingrediente para escolher outro.';
+        aviso.classList.add('alert-danger');
+        aviso.classList.remove('alert-warning');
+    } else {
+        aviso.innerHTML = '<i class="bi bi-info-circle me-1"></i> Cada ingrediente selecionado será incluído na montagem e somado ao preço final.';
+        aviso.classList.add('alert-warning');
+        aviso.classList.remove('alert-danger');
+    }
+}
 function calcularPrecoTotal(){
     const ts=document.getElementById('tamanho_id'),to=ts.options[ts.selectedIndex];
     let total=parseFloat(to.dataset.preco)||0;
@@ -130,7 +163,22 @@ function calcularPrecoTotal(){
     document.getElementById('preco_total_display').textContent='R$ '+total.toFixed(2).replace('.',',');
     document.getElementById('valor_total_input').value=total.toFixed(2);
 }
-document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.ingrediente-checkbox,.molho-checkbox').forEach(x=>x.addEventListener('change',calcularPrecoTotal));calcularPrecoTotal();});
+document.addEventListener('DOMContentLoaded',()=>{
+    document.querySelectorAll('.ingrediente-checkbox').forEach(x=>x.addEventListener('change',()=>{
+        atualizarLimiteIngredientes();
+        calcularPrecoTotal();
+    }));
+    document.querySelectorAll('.ingredient-option').forEach(label=>label.addEventListener('click',event=>{
+        const checkbox = label.querySelector('.ingrediente-checkbox');
+        if (checkbox?.disabled && !checkbox.checked) {
+            event.preventDefault();
+            atualizarLimiteIngredientes(true);
+        }
+    }));
+    document.querySelectorAll('.molho-checkbox').forEach(x=>x.addEventListener('change',calcularPrecoTotal));
+    atualizarLimiteIngredientes();
+    calcularPrecoTotal();
+});
 </script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

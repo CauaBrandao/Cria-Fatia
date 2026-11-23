@@ -1,14 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/conexao.php';
-
-// Segurança e funções auxiliares
-function e($valor) {
-    return htmlspecialchars((string)$valor, ENT_QUOTES, 'UTF-8');
-}
-
-function moeda($valor) {
-    return 'R$ ' . number_format((float)$valor, 2, ',', '.');
-}
+require_once __DIR__ . '/../includes/funcoes.php';
 
 $codigo = trim($_GET['codigo'] ?? $_POST['codigo'] ?? '');
 $pedido = null;
@@ -301,24 +293,8 @@ $podeConfirmar =
         (string)($_SESSION['ultimo_pedido_token'] ?? '')
     );
 
+require_once __DIR__ . '/../includes/header.php';
 ?>
-
-<!DOCTYPE html>
-<html lang="pt-BR">
-
-<head>
-
-    <meta charset="UTF-8">
-
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Meu Pedido - Cria Fatia</title>
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
-    <link rel="stylesheet" href="../assets/css/style.css">
 
     <style>
 
@@ -500,12 +476,6 @@ $podeConfirmar =
 
     </style>
 
-</head>
-
-<body class="bg-light">
-
-<?php include("../includes/header.php"); ?>
-
 <div class="container my-5 pedido-container">
 
     <?php if ($mensagem): ?>
@@ -513,7 +483,7 @@ $podeConfirmar =
         <div class="alert alert-success alert-dismissible fade show">
             <i class="bi bi-check-circle-fill me-2"></i>
 
-            <?= e($mensagem) ?>
+            <?= escapar($mensagem) ?>
 
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
@@ -524,7 +494,7 @@ $podeConfirmar =
 
         <div class="alert alert-danger">
             <i class="bi bi-exclamation-circle me-2"></i>
-            <?= e($erro) ?>
+            <?= escapar($erro) ?>
         </div>
 
     <?php endif; ?>
@@ -562,7 +532,7 @@ $podeConfirmar =
                         </div>
 
                         <h4 class="fw-bold text-warning mb-0">
-                            <?= e($pedido['codigo_acompanhamento']) ?>
+                            <?= escapar($pedido['codigo_acompanhamento']) ?>
                         </h4>
 
                     </div>
@@ -597,7 +567,7 @@ $podeConfirmar =
                                     </div>
 
                                     <strong>
-                                        <?= e($pedido['cliente_nome']) ?>
+                                        <?= escapar($pedido['cliente_nome']) ?>
                                     </strong>
 
                                 </div>
@@ -609,7 +579,7 @@ $podeConfirmar =
                                     </div>
 
                                     <strong>
-                                        <?= e($pedido['cliente_telefone']) ?>
+                                        <?= escapar($pedido['cliente_telefone']) ?>
                                     </strong>
 
                                 </div>
@@ -651,7 +621,7 @@ $podeConfirmar =
                                         </div>
 
                                         <strong>
-                                            <?= nl2br(e($pedido['endereco'])) ?>
+                                            <?= nl2br(escapar($pedido['endereco'])) ?>
                                         </strong>
 
                                     </div>
@@ -667,7 +637,7 @@ $podeConfirmar =
                                         </div>
 
                                         <strong>
-                                            <?= nl2br(e($pedido['observacoes'])) ?>
+                                            <?= nl2br(escapar($pedido['observacoes'])) ?>
                                         </strong>
 
                                     </div>
@@ -710,7 +680,7 @@ $podeConfirmar =
                                             </div>
 
                                             <span class="badge bg-warning text-dark px-3 py-2">
-                                                <?= e($item['tamanho_nome'] ?? 'Tamanho não informado') ?>
+                                                <?= escapar($item['tamanho_nome'] ?? 'Tamanho não informado') ?>
                                             </span>
 
                                         </div>
@@ -722,14 +692,14 @@ $podeConfirmar =
                                             </span>
 
                                             <span class="detalhe-valor">
-                                                <?= e($item['tamanho_nome'] ?? 'Não informado') ?>
+                                                <?= escapar($item['tamanho_nome'] ?? 'Não informado') ?>
                                             </span>
 
                                         </div>
 
                                         <div class="detalhe-linha">
                                             <span class="detalhe-label">Tipo de massa</span>
-                                            <span class="detalhe-valor"><?= e($item['massa_nome'] ?? 'Não informada') ?></span>
+                                            <span class="detalhe-valor"><?= escapar($item['massa_nome'] ?? 'Não informada') ?></span>
                                         </div>
 
                                         <div class="detalhe-linha">
@@ -753,7 +723,7 @@ $podeConfirmar =
                                             </span>
 
                                             <span class="detalhe-valor">
-                                                <?= e(implode(', ', array_map(function($c){ return $c['nome']; }, array_filter($item['customizacoes'] ?? [], function($c){ return $c['acao'] === 'adicionar'; }))) ?: 'Não informado') ?>
+                                                <?= escapar(implode(', ', array_map(function($c){ return $c['nome']; }, array_filter($item['customizacoes'] ?? [], function($c){ return $c['acao'] === 'adicionar'; }))) ?: 'Não informado') ?>
                                             </span>
 
                                         </div>
@@ -767,7 +737,7 @@ $podeConfirmar =
                                                 </span>
 
                                                 <span class="detalhe-valor">
-                                                    <?= e($item['sabor2_nome']) ?>
+                                                    <?= escapar($item['sabor2_nome']) ?>
                                                 </span>
 
                                             </div>
@@ -781,7 +751,7 @@ $podeConfirmar =
                                             </span>
 
                                             <span class="detalhe-valor">
-                                                <?= e($item['borda_nome'] ?? 'Não informada') ?>
+                                                <?= escapar($item['borda_nome'] ?? 'Não informada') ?>
                                             </span>
 
                                         </div>
@@ -823,7 +793,7 @@ $podeConfirmar =
 
                                                         <span class="detalhe-label">
 
-                                                            <?= e($extra['nome']) ?>
+                                                            <?= escapar($extra['nome']) ?>
 
                                                             <small>
                                                                 (Metade <?= (int)$extra['metade'] ?>)
@@ -832,7 +802,7 @@ $podeConfirmar =
                                                         </span>
 
                                                         <span class="detalhe-valor text-success">
-                                                            + <?= moeda($extra['preco_adicional']) ?>
+                                                            + <?= formatarMoeda($extra['preco_adicional']) ?>
                                                         </span>
 
                                                     </div>
@@ -859,7 +829,7 @@ $podeConfirmar =
                                                     <div class="detalhe-linha">
 
                                                         <span class="detalhe-label">
-                                                            <?= e($extra['nome']) ?>
+                                                            <?= escapar($extra['nome']) ?>
                                                             <small>(Metade <?= (int)$extra['metade'] ?>)</small>
                                                         </span>
 
@@ -893,11 +863,11 @@ $podeConfirmar =
                                                     <div class="detalhe-linha">
 
                                                         <span class="detalhe-label">
-                                                            <?= e($molho['nome']) ?>
+                                                            <?= escapar($molho['nome']) ?>
                                                         </span>
 
                                                         <span class="detalhe-valor text-success">
-                                                            + <?= moeda($molho['preco_adicional']) ?>
+                                                            + <?= formatarMoeda($molho['preco_adicional']) ?>
                                                         </span>
 
                                                     </div>
@@ -915,7 +885,7 @@ $podeConfirmar =
                                             </strong>
 
                                             <strong class="text-success fs-5">
-                                                <?= moeda($item['preco_item']) ?>
+                                                <?= formatarMoeda($item['preco_item']) ?>
                                             </strong>
 
                                         </div>
@@ -947,7 +917,7 @@ $podeConfirmar =
                                 </div>
 
                                 <h2 class="text-success fw-bold mb-0">
-                                    <?= moeda($pedido['valor_total']) ?>
+                                    <?= formatarMoeda($pedido['valor_total']) ?>
                                 </h2>
 
                             </div>
@@ -955,7 +925,7 @@ $podeConfirmar =
                             <?php if ((float)($pedido['taxa_entrega'] ?? 0) > 0): ?>
                                 <div class="mt-2 pt-2 border-top border-secondary d-flex justify-content-between small text-white-50">
                                     <span>Taxa de Entrega inclusa:</span>
-                                    <span><?= moeda($pedido['taxa_entrega']) ?></span>
+                                    <span><?= formatarMoeda($pedido['taxa_entrega']) ?></span>
                                 </div>
                             <?php endif; ?>
 
@@ -1029,20 +999,20 @@ $podeConfirmar =
                                     Situação do pedido
                                 </h5>
 
-                                <div class="status-card bg-<?= e($config['cor']) ?> bg-opacity-10">
+                                <div class="status-card bg-<?= escapar($config['cor']) ?> bg-opacity-10">
 
-                                    <div class="status-icone bg-<?= e($config['cor']) ?> bg-opacity-10 text-<?= e($config['cor']) ?>">
+                                    <div class="status-icone bg-<?= escapar($config['cor']) ?> bg-opacity-10 text-<?= escapar($config['cor']) ?>">
 
-                                        <i class="bi <?= e($config['icone']) ?>"></i>
+                                        <i class="bi <?= escapar($config['icone']) ?>"></i>
 
                                     </div>
 
                                     <h5 class="fw-bold">
-                                        <?= e($config['nome']) ?>
+                                        <?= escapar($config['nome']) ?>
                                     </h5>
 
                                     <p class="text-muted small mb-0">
-                                        <?= e($config['descricao']) ?>
+                                        <?= escapar($config['descricao']) ?>
                                     </p>
 
                                 </div>
@@ -1085,7 +1055,7 @@ $podeConfirmar =
                                             <div class="timeline-item <?= $posicao >= $ordem[$chave] ? 'ativo' : '' ?>">
 
                                                 <div class="fw-bold small">
-                                                    <?= e($nomeEtapa) ?>
+                                                    <?= escapar($nomeEtapa) ?>
                                                 </div>
 
                                                 <small class="text-muted">
@@ -1144,11 +1114,11 @@ $podeConfirmar =
 
                                         <input type="hidden"
                                                name="codigo"
-                                               value="<?= e($codigo) ?>">
+                                               value="<?= escapar($codigo) ?>">
 
                                         <input type="hidden"
                                                name="csrf_token"
-                                               value="<?= e($_SESSION['csrf_pedido']) ?>">
+                                               value="<?= escapar($_SESSION['csrf_pedido']) ?>">
 
                                         <button type="submit"
                                                 name="confirmar_recebimento"
@@ -1243,7 +1213,7 @@ $podeConfirmar =
                            name="codigo"
                            class="form-control"
                            placeholder="Ex: CF-8K29P5"
-                           value="<?= e($codigo) ?>"
+                           value="<?= escapar($codigo) ?>"
                            required>
 
                     <button type="submit" class="btn btn-warning fw-bold">

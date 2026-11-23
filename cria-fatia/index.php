@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '/includes/header.php';
-require_once __DIR__ . '/config/conexao.php';
 ?>
 
 <!-- HERO SECTION PREMIUM -->

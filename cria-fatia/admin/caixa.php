@@ -1,7 +1,8 @@
 <?php
-require_once __DIR__ . '/../includes/header.php';
 require_once __DIR__ . '/../config/conexao.php';
+require_once __DIR__ . '/../includes/funcoes.php';
 checarPerfil(['admin', 'atendimento']);
+require_once __DIR__ . '/../includes/header.php';
 
 $msg = '';
 $erro = '';

@@ -1,7 +1,8 @@
 <?php
-require_once __DIR__ . '/../includes/header.php';
 require_once __DIR__ . '/../config/conexao.php';
+require_once __DIR__ . '/../includes/funcoes.php';
 checarPerfil(['admin']);
+require_once __DIR__ . '/../includes/header.php';
 
 $msg = '';
 $erro = '';
@@ -19,7 +20,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($nome === '' || $preco < 0) {
             $erro = 'Informe um nome e um preço adicional válido.';
         } else {
-            if ($id > 0) {
+            $duplicada = $pdo->prepare('SELECT COUNT(*) FROM tipos_massas WHERE LOWER(TRIM(nome)) = LOWER(TRIM(?)) AND id <> ?');
+            $duplicada->execute([$nome, $id]);
+            if ((int)$duplicada->fetchColumn() > 0) {
+                $erro = 'Já existe um tipo de massa com esse nome.';
+            } elseif ($id > 0) {
                 $st = $pdo->prepare('UPDATE tipos_massas SET nome=?, descricao=?, preco_adicional=?, disponivel=? WHERE id=?');
                 $st->execute([$nome, $descricao, $preco, $disponivel, $id]);
                 $msg = 'Tipo de massa atualizado.';

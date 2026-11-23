@@ -25,6 +25,7 @@ $stmt = $pdo->prepare("SELECT * FROM tipos_massas WHERE id = ? AND disponivel = 
 $stmt = $pdo->prepare("SELECT * FROM bordas WHERE id = ? AND disponivel = 1"); $stmt->execute([$borda_id]); $borda = $stmt->fetch();
 if (!$tamanho || !$borda || !$massa) { unset($_SESSION['dados_pedido']); header('Location: montar.php'); exit; }
 if (!$ingredientesEscolhidos) { $erro = 'Selecione pelo menos um ingrediente para montar sua pizza.'; }
+if (count($ingredientesEscolhidos) > 8) { $erro = 'Selecione no máximo 8 ingredientes para montar sua pizza.'; }
 
 $ingredientesValidos = [];
 if ($ingredientesEscolhidos) {
@@ -100,7 +101,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cliente_nome'])) {
                 header('Location: pedido.php?codigo=' . urlencode($codigo_acompanhamento)); exit;
             } catch (Exception $e) {
                 if ($pdo->inTransaction()) $pdo->rollBack();
-                $erro = 'Erro ao finalizar pedido: ' . $e->getMessage();
+                error_log('Erro ao finalizar pedido no Cria Fatia: ' . $e->getMessage());
+                $erro = 'Não foi possível finalizar o pedido. Tente novamente em alguns instantes.';
             }
         }
     }
