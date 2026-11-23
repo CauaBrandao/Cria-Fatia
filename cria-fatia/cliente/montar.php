@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/header.php';
 
-$tamanhos = $pdo->query("SELECT * FROM tamanhos ORDER BY id ASC")->fetchAll();
+$tamanhos = $pdo->query("SELECT * FROM tamanhos WHERE disponivel = 1 ORDER BY id ASC")->fetchAll();
 $massas = $pdo->query("
     SELECT tm.*
     FROM tipos_massas tm

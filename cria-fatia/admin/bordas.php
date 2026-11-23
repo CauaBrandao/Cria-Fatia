@@ -8,15 +8,19 @@ $msg = '';
 $erro = '';
 
 // Exclusão Segura
-if (isset($_GET['excluir'])) {
-    $csrf = isset($_GET['csrf_token']) ? $_GET['csrf_token'] : '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['excluir_borda'])) {
+    $csrf = $_POST['csrf_token'] ?? '';
     if (!validarCsrfToken($csrf)) {
         $erro = 'Ação inválida (CSRF).';
     } else {
-        $idExcluir = (int)$_GET['excluir'];
+        $idExcluir = (int)$_POST['excluir_borda'];
         $stmt = $pdo->prepare("DELETE FROM bordas WHERE id = ?");
-        $stmt->execute([$idExcluir]);
-        $msg = "Borda excluída com sucesso!";
+        try {
+            $stmt->execute([$idExcluir]);
+            $msg = "Borda excluída com sucesso!";
+        } catch (PDOException $e) {
+            $erro = 'Não foi possível excluir: esta borda está vinculada a pedidos.';
+        }
     }
 }
 
@@ -128,7 +132,7 @@ $token = gerarCsrfToken();
                             <td class="fw-bold text-success">R$ <?php echo number_format($b['preco'], 2, ',', '.'); ?></td>
                             <td>
                                 <a href="bordas.php?editar=<?php echo $b['id']; ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
-                                <a href="bordas.php?excluir=<?php echo $b['id']; ?>&csrf_token=<?php echo $token; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Tem certeza que deseja excluir esta borda?');"><i class="bi bi-trash"></i></a>
+                                <form method="POST" action="bordas.php" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta borda?');"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($token); ?>"><button type="submit" name="excluir_borda" value="<?php echo (int)$b['id']; ?>" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
                             </td>
                         </tr>
                     <?php endforeach; ?>

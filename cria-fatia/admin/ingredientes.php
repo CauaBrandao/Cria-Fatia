@@ -8,34 +8,24 @@ $msg = '';
 $erro = '';
 $token = gerarCsrfToken();
 
-// Toggle de disponibilidade
-if (isset($_GET['toggle'])) {
-    if (!validarCsrfToken($_GET['csrf_token'] ?? '')) {
+// Ações administrativas que alteram dados são aceitas somente via POST.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao_ingrediente'])) {
+    if (!validarCsrfToken($_POST['csrf_token'] ?? '')) {
         $erro = 'Ação inválida (CSRF).';
     } else {
-        $id = (int)$_GET['toggle'];
+        $id = (int)($_POST['ingrediente_id'] ?? 0);
+        $acao = $_POST['acao_ingrediente'];
         $stmt = $pdo->prepare("SELECT nome, disponivel FROM ingredientes WHERE id = ?");
         $stmt->execute([$id]);
         $ing = $stmt->fetch();
-        if ($ing) {
+        if (!$ing) {
+            $erro = 'Ingrediente não encontrado.';
+        } elseif ($acao === 'toggle') {
             $novoStatus = (int)!$ing['disponivel'];
             $pdo->prepare("UPDATE ingredientes SET disponivel = ? WHERE id = ?")->execute([$novoStatus, $id]);
             registrarAuditoria($pdo, 'ALTERAR_DISPONIBILIDADE', 'ingredientes', $id, $ing['disponivel'], $novoStatus, "Alterou disponibilidade do ingrediente: " . $ing['nome']);
             $msg = 'Disponibilidade do ingrediente atualizada com sucesso!';
-        }
-    }
-}
-
-// Exclusão
-if (isset($_GET['excluir'])) {
-    if (!validarCsrfToken($_GET['csrf_token'] ?? '')) {
-        $erro = 'Ação inválida (CSRF).';
-    } else {
-        $id = (int)$_GET['excluir'];
-        $stmt = $pdo->prepare("SELECT nome FROM ingredientes WHERE id = ?");
-        $stmt->execute([$id]);
-        $ing = $stmt->fetch();
-        if ($ing) {
+        } elseif ($acao === 'excluir') {
             try {
                 $pdo->prepare("DELETE FROM ingredientes WHERE id = ?")->execute([$id]);
                 registrarAuditoria($pdo, 'EXCLUIR', 'ingredientes', $id, $ing['nome'], null, "Excluiu o ingrediente: " . $ing['nome']);
@@ -43,12 +33,14 @@ if (isset($_GET['excluir'])) {
             } catch (PDOException $e) {
                 $erro = 'Não foi possível excluir: este ingrediente está vinculado a pedidos existentes. Desative a disponibilidade.';
             }
+        } else {
+            $erro = 'Ação administrativa inválida.';
         }
     }
 }
 
 // Cadastro / Edição
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['salvar_ingrediente'])) {
     if (!validarCsrfToken($_POST['csrf_token'] ?? '')) {
         $erro = 'Token de segurança inválido.';
     } else {
@@ -127,6 +119,7 @@ $categoriasExistentes = $pdo->query("SELECT DISTINCT categoria FROM ingredientes
             <div class="card-body p-4">
                 <form method="POST" action="ingredientes.php">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($token) ?>">
+                    <input type="hidden" name="salvar_ingrediente" value="1">
                     <input type="hidden" name="id" value="<?= (int)($editar['id'] ?? 0) ?>">
 
                     <div class="mb-3">
@@ -216,20 +209,25 @@ $categoriasExistentes = $pdo->query("SELECT DISTINCT categoria FROM ingredientes
                                     + R$ <?= number_format($ing['preco_adicional'], 2, ',', '.') ?>
                                 </td>
                                 <td>
-                                    <a href="ingredientes.php?toggle=<?= (int)$ing['id'] ?>&csrf_token=<?= urlencode($token) ?>"
-                                       class="badge text-decoration-none bg-<?= $ing['disponivel'] ? 'success' : 'secondary' ?>">
+                                    <form method="POST" action="ingredientes.php" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($token) ?>">
+                                        <input type="hidden" name="acao_ingrediente" value="toggle">
+                                        <input type="hidden" name="ingrediente_id" value="<?= (int)$ing['id'] ?>">
+                                        <button type="submit" class="badge border-0 text-decoration-none bg-<?= $ing['disponivel'] ? 'success' : 'secondary' ?>">
                                         <?= $ing['disponivel'] ? 'Disponível' : 'Indisponível' ?>
-                                    </a>
+                                        </button>
+                                    </form>
                                 </td>
                                 <td class="text-end">
                                     <a href="ingredientes.php?editar=<?= (int)$ing['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <a href="ingredientes.php?excluir=<?= (int)$ing['id'] ?>&csrf_token=<?= urlencode($token) ?>"
-                                       class="btn btn-sm btn-outline-danger" title="Excluir"
-                                       onclick="return confirm('Tem certeza que deseja excluir este ingrediente?');">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
+                                    <form method="POST" action="ingredientes.php" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir este ingrediente?');">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($token) ?>">
+                                        <input type="hidden" name="acao_ingrediente" value="excluir">
+                                        <input type="hidden" name="ingrediente_id" value="<?= (int)$ing['id'] ?>">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>
+                                    </form>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

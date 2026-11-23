@@ -35,16 +35,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pedido_id'], $_POST['
     }
 }
 
-// Cancelamento de Pedido pelo Admin (mantido por compatibilidade)
-if (isset($_GET['cancelar'])) {
-    $csrf = isset($_GET['csrf_token']) ? $_GET['csrf_token'] : '';
+// Cancelamento de pedido somente via POST.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancelar_pedido'])) {
+    $csrf = $_POST['csrf_token'] ?? '';
     if (!validarCsrfToken($csrf)) {
         $erro = 'Ação inválida (CSRF).';
     } else {
-        $idCancel = (int)$_GET['cancelar'];
-        $stmt = $pdo->prepare("UPDATE pedidos SET status = 'cancelado' WHERE id = ?");
+        $idCancel = (int)$_POST['cancelar_pedido'];
+        $stmtOld = $pdo->prepare("SELECT status FROM pedidos WHERE id = ?");
+        $stmtOld->execute([$idCancel]);
+        $statusAnterior = $stmtOld->fetchColumn();
+        $stmt = $pdo->prepare("UPDATE pedidos SET status = 'cancelado' WHERE id = ? AND status NOT IN ('cancelado', 'entregue')");
         $stmt->execute([$idCancel]);
-        $msg = "Pedido #{$idCancel} cancelado.";
+        if ($stmt->rowCount() > 0) {
+            registrarStatusPedido($pdo, $idCancel, $statusAnterior, 'cancelado', 'Pedido cancelado pelo administrador.');
+            $msg = "Pedido #{$idCancel} cancelado.";
+        } else {
+            $erro = 'O pedido não existe ou não pode mais ser cancelado.';
+        }
     }
 }
 
@@ -122,7 +130,7 @@ $token = gerarCsrfToken();
                             <a href="<?php echo BASE_URL; ?>atendimento/imprimir.php?id=<?php echo $p['id']; ?>" class="btn btn-sm btn-outline-dark" target="_blank" title="Imprimir Cupom"><i class="bi bi-printer"></i></a>
                             <a href="<?php echo BASE_URL; ?>cliente/pedido.php?codigo=<?php echo urlencode($p['codigo_acompanhamento']); ?>" class="btn btn-sm btn-outline-secondary" target="_blank" title="Ver no Site"><i class="bi bi-eye"></i></a>
                             <?php if ($p['status'] !== 'cancelado' && $p['status'] !== 'finalizado'): ?>
-                                <a href="pedidos.php?cancelar=<?php echo $p['id']; ?>&csrf_token=<?php echo $token; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Deseja cancelar este pedido?');" title="Cancelar Pedido"><i class="bi bi-x-circle"></i></a>
+                                <form method="POST" action="pedidos.php" class="d-inline" onsubmit="return confirm('Deseja cancelar este pedido?');"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($token); ?>"><button type="submit" name="cancelar_pedido" value="<?php echo (int)$p['id']; ?>" class="btn btn-sm btn-outline-danger" title="Cancelar Pedido"><i class="bi bi-x-circle"></i></button></form>
                             <?php endif; ?>
                         </div>
                     </td>

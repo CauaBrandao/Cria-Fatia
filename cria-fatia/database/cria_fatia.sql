@@ -6,8 +6,11 @@ USE cria_fatia;
 CREATE TABLE IF NOT EXISTS tamanhos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(50) NOT NULL,
+    descricao TEXT DEFAULT NULL,
     max_sabores INT NOT NULL DEFAULT 1,
-    preco_base DECIMAL(10, 2) NOT NULL DEFAULT 0.00
+    quantidade_fatias INT NOT NULL DEFAULT 0,
+    preco_base DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    disponivel TINYINT(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO tamanhos (id, nome, max_sabores, preco_base) VALUES
@@ -37,7 +40,8 @@ ON DUPLICATE KEY UPDATE nome=VALUES(nome), descricao=VALUES(descricao), preco=VA
 CREATE TABLE IF NOT EXISTS bordas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
-    preco DECIMAL(10, 2) NOT NULL DEFAULT 0.00
+    preco DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    disponivel TINYINT(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO bordas (id, nome, preco) VALUES
@@ -51,7 +55,10 @@ ON DUPLICATE KEY UPDATE nome=VALUES(nome), preco=VALUES(preco);
 CREATE TABLE IF NOT EXISTS ingredientes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
-    preco_adicional DECIMAL(10, 2) NOT NULL DEFAULT 3.00
+    descricao TEXT DEFAULT NULL,
+    categoria VARCHAR(100) DEFAULT NULL,
+    preco_adicional DECIMAL(10, 2) NOT NULL DEFAULT 3.00,
+    disponivel TINYINT(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO ingredientes (id, nome, preco_adicional) VALUES
@@ -96,6 +103,9 @@ CREATE TABLE IF NOT EXISTS pedidos (
     tipo_entrega ENUM('entrega', 'retirada') NOT NULL DEFAULT 'entrega',
     endereco TEXT DEFAULT NULL,
     observacoes TEXT DEFAULT NULL,
+    forma_pagamento ENUM('pix', 'cartao', 'dinheiro') NOT NULL DEFAULT 'pix',
+    taxa_entrega DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    troco_para DECIMAL(10, 2) DEFAULT NULL,
     valor_total DECIMAL(10, 2) NOT NULL,
     status ENUM('pendente', 'em_producao', 'pronto', 'finalizado', 'entregue', 'cancelado') NOT NULL DEFAULT 'pendente',
     criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -133,6 +143,7 @@ CREATE TABLE IF NOT EXISTS pedido_itens (
     FOREIGN KEY (pedido_id) REFERENCES pedidos(id) ON DELETE CASCADE,
     FOREIGN KEY (tamanho_id) REFERENCES tamanhos(id),
     FOREIGN KEY (borda_id) REFERENCES bordas(id),
+    FOREIGN KEY (massa_id) REFERENCES tipos_massas(id) ON DELETE SET NULL,
     FOREIGN KEY (sabor1_id) REFERENCES sabores(id) ON DELETE SET NULL,
     FOREIGN KEY (sabor2_id) REFERENCES sabores(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

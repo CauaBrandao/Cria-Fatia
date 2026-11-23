@@ -8,15 +8,19 @@ $msg = '';
 $erro = '';
 
 // Exclusão Segura
-if (isset($_GET['excluir'])) {
-    $csrf = isset($_GET['csrf_token']) ? $_GET['csrf_token'] : '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['excluir_sabor'])) {
+    $csrf = $_POST['csrf_token'] ?? '';
     if (!validarCsrfToken($csrf)) {
         $erro = 'Ação inválida (CSRF).';
     } else {
-        $idExcluir = (int)$_GET['excluir'];
+        $idExcluir = (int)$_POST['excluir_sabor'];
         $stmt = $pdo->prepare("DELETE FROM sabores WHERE id = ?");
-        $stmt->execute([$idExcluir]);
-        $msg = "Sabor excluído com sucesso!";
+        try {
+            $stmt->execute([$idExcluir]);
+            $msg = "Sabor excluído com sucesso!";
+        } catch (PDOException $e) {
+            $erro = 'Não foi possível excluir: este sabor está vinculado a pedidos.';
+        }
     }
 }
 
@@ -135,7 +139,7 @@ $token = gerarCsrfToken();
                             <td class="fw-bold text-success">R$ <?php echo number_format($s['preco'], 2, ',', '.'); ?></td>
                             <td>
                                 <a href="sabores.php?editar=<?php echo $s['id']; ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
-                                <a href="sabores.php?excluir=<?php echo $s['id']; ?>&csrf_token=<?php echo $token; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Tem certeza que deseja excluir este sabor?');"><i class="bi bi-trash"></i></a>
+                                <form method="POST" action="sabores.php" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir este sabor?');"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($token); ?>"><button type="submit" name="excluir_sabor" value="<?php echo (int)$s['id']; ?>" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
                             </td>
                         </tr>
                     <?php endforeach; ?>

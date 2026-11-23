@@ -27,5 +27,18 @@ INNER JOIN (
 ) canonica ON canonica.nome_normalizado = LOWER(TRIM(duplicada.nome))
 WHERE duplicada.id <> canonica.id_canonico;
 
-ALTER TABLE tipos_massas
-ADD UNIQUE KEY uq_tipos_massas_nome (nome);
+SET @index_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.statistics
+    WHERE table_schema = DATABASE()
+      AND table_name = 'tipos_massas'
+      AND index_name = 'uq_tipos_massas_nome'
+);
+SET @index_sql = IF(
+    @index_exists = 0,
+    'ALTER TABLE tipos_massas ADD UNIQUE KEY uq_tipos_massas_nome (nome)',
+    'SELECT 1'
+);
+PREPARE index_stmt FROM @index_sql;
+EXECUTE index_stmt;
+DEALLOCATE PREPARE index_stmt;

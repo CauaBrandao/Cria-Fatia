@@ -20,7 +20,7 @@ $borda_id = (int)($dados['borda_id'] ?? 0);
 $ingredientesEscolhidos = isset($dados['ingredientes']) && is_array($dados['ingredientes']) ? array_values(array_unique(array_map('intval', $dados['ingredientes']))) : [];
 $molhosEscolhidos = isset($dados['molhos']) && is_array($dados['molhos']) ? array_values(array_unique(array_map('intval', $dados['molhos']))) : [];
 
-$stmt = $pdo->prepare("SELECT * FROM tamanhos WHERE id = ?"); $stmt->execute([$tamanho_id]); $tamanho = $stmt->fetch();
+$stmt = $pdo->prepare("SELECT * FROM tamanhos WHERE id = ? AND disponivel = 1"); $stmt->execute([$tamanho_id]); $tamanho = $stmt->fetch();
 $stmt = $pdo->prepare("SELECT * FROM tipos_massas WHERE id = ? AND disponivel = 1"); $stmt->execute([$massa_id]); $massa = $stmt->fetch();
 $stmt = $pdo->prepare("SELECT * FROM bordas WHERE id = ? AND disponivel = 1"); $stmt->execute([$borda_id]); $borda = $stmt->fetch();
 if (!$tamanho || !$borda || !$massa) { unset($_SESSION['dados_pedido']); header('Location: montar.php'); exit; }

@@ -36,11 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
-if (isset($_GET['excluir'])) {
-    if (!validarCsrfToken($_GET['csrf_token'] ?? '')) $erro = 'Token de segurança inválido.';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['excluir_massa'])) {
+    if (!validarCsrfToken($_POST['csrf_token'] ?? '')) $erro = 'Token de segurança inválido.';
     else {
         $st = $pdo->prepare('DELETE FROM tipos_massas WHERE id=?');
-        try { $st->execute([(int)$_GET['excluir']]); $msg = 'Tipo de massa excluído.'; }
+        try { $st->execute([(int)$_POST['excluir_massa']]); $msg = 'Tipo de massa excluído.'; }
         catch (PDOException $e) { $erro = 'Não foi possível excluir: esta massa já está vinculada a pedidos.'; }
     }
 }
@@ -70,7 +70,7 @@ $lista=$pdo->query('SELECT * FROM tipos_massas ORDER BY nome')->fetchAll();
 <?php if($editar): ?><a href="massas.php" class="btn btn-link w-100">Cancelar edição</a><?php endif; ?>
 </form></div></div></div>
 <div class="col-lg-8"><div class="card border-0 shadow-sm"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="table-dark"><tr><th>Massa</th><th>Adicional</th><th>Status</th><th>Ações</th></tr></thead><tbody>
-<?php foreach($lista as $m): ?><tr><td><strong><?= htmlspecialchars($m['nome']) ?></strong><div class="small text-muted"><?= htmlspecialchars($m['descricao'] ?? '') ?></div></td><td>R$ <?= number_format($m['preco_adicional'],2,',','.') ?></td><td><span class="badge bg-<?= $m['disponivel'] ? 'success' : 'secondary' ?>"><?= $m['disponivel'] ? 'Disponível' : 'Indisponível' ?></span></td><td><a class="btn btn-sm btn-outline-primary" href="massas.php?editar=<?= (int)$m['id'] ?>"><i class="bi bi-pencil"></i></a> <a class="btn btn-sm btn-outline-danger" onclick="return confirm('Excluir este tipo de massa?')" href="massas.php?excluir=<?= (int)$m['id'] ?>&csrf_token=<?= urlencode($token) ?>"><i class="bi bi-trash"></i></a></td></tr><?php endforeach; ?>
+<?php foreach($lista as $m): ?><tr><td><strong><?= htmlspecialchars($m['nome']) ?></strong><div class="small text-muted"><?= htmlspecialchars($m['descricao'] ?? '') ?></div></td><td>R$ <?= number_format($m['preco_adicional'],2,',','.') ?></td><td><span class="badge bg-<?= $m['disponivel'] ? 'success' : 'secondary' ?>"><?= $m['disponivel'] ? 'Disponível' : 'Indisponível' ?></span></td><td><a class="btn btn-sm btn-outline-primary" href="massas.php?editar=<?= (int)$m['id'] ?>"><i class="bi bi-pencil"></i></a> <form method="POST" action="massas.php" class="d-inline" onsubmit="return confirm('Excluir este tipo de massa?')"><input type="hidden" name="csrf_token" value="<?= htmlspecialchars($token) ?>"><button type="submit" name="excluir_massa" value="<?= (int)$m['id'] ?>" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form></td></tr><?php endforeach; ?>
 <?php if(!$lista): ?><tr><td colspan="4" class="text-center text-muted p-4">Nenhuma massa cadastrada.</td></tr><?php endif; ?>
 </tbody></table></div></div></div></div>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

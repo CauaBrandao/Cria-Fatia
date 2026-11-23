@@ -7,41 +7,36 @@ require_once __DIR__ . '/../includes/header.php';
 $msg = '';
 $erro = '';
 
-// Toggle disponibilidade
-if (isset($_GET['toggle'])) {
-    $csrf = isset($_GET['csrf_token']) ? $_GET['csrf_token'] : '';
+// Ações administrativas que alteram dados são aceitas somente via POST.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao_molho'])) {
+    $csrf = $_POST['csrf_token'] ?? '';
     if (!validarCsrfToken($csrf)) {
         $erro = 'Ação inválida (CSRF).';
     } else {
-        $idToggle = (int)$_GET['toggle'];
+        $idToggle = (int)($_POST['molho_id'] ?? 0);
+        $acao = $_POST['acao_molho'];
         $stmt = $pdo->prepare("SELECT nome, disponivel FROM molhos WHERE id = ?");
         $stmt->execute([$idToggle]);
         $molho = $stmt->fetch();
-        if ($molho) {
+        if (!$molho) {
+            $erro = 'Molho não encontrado.';
+        } elseif ($acao === 'toggle') {
             $novoStatus = $molho['disponivel'] ? 0 : 1;
             $stmtUp = $pdo->prepare("UPDATE molhos SET disponivel = ? WHERE id = ?");
             $stmtUp->execute([$novoStatus, $idToggle]);
             registrarAuditoria($pdo, 'ALTERAR_DISPONIBILIDADE', 'molhos', $idToggle, $molho['disponivel'], $novoStatus, "Alterou disponibilidade do molho: " . $molho['nome']);
             $msg = "Disponibilidade do molho atualizada com sucesso!";
-        }
-    }
-}
-
-// Exclusão
-if (isset($_GET['excluir'])) {
-    $csrf = isset($_GET['csrf_token']) ? $_GET['csrf_token'] : '';
-    if (!validarCsrfToken($csrf)) {
-        $erro = 'Ação inválida (CSRF).';
-    } else {
-        $idExcluir = (int)$_GET['excluir'];
-        $stmt = $pdo->prepare("SELECT nome FROM molhos WHERE id = ?");
-        $stmt->execute([$idExcluir]);
-        $molho = $stmt->fetch();
-        if ($molho) {
-            $stmtDel = $pdo->prepare("DELETE FROM molhos WHERE id = ?");
-            $stmtDel->execute([$idExcluir]);
-            registrarAuditoria($pdo, 'EXCLUIR', 'molhos', $idExcluir, $molho['nome'], null, "Excluiu o molho: " . $molho['nome']);
-            $msg = "Molho excluído com sucesso!";
+        } elseif ($acao === 'excluir') {
+            try {
+                $stmtDel = $pdo->prepare("DELETE FROM molhos WHERE id = ?");
+                $stmtDel->execute([$idToggle]);
+                registrarAuditoria($pdo, 'EXCLUIR', 'molhos', $idToggle, $molho['nome'], null, "Excluiu o molho: " . $molho['nome']);
+                $msg = "Molho excluído com sucesso!";
+            } catch (PDOException $e) {
+                $erro = 'Não foi possível excluir: este molho está vinculado a pedidos existentes. Desative a disponibilidade.';
+            }
+        } else {
+            $erro = 'Ação administrativa inválida.';
         }
     }
 }
@@ -138,15 +133,21 @@ $csrfToken = gerarCsrfToken();
                                     <?php endif; ?>
                                 </td>
                                 <td class="text-end">
-                                    <a href="molhos.php?toggle=<?php echo $m['id']; ?>&csrf_token=<?php echo $csrfToken; ?>" class="btn btn-sm btn-outline-<?php echo $m['disponivel'] ? 'warning' : 'success'; ?>" title="Alternar Disponibilidade">
-                                        <i class="bi bi-power"></i>
-                                    </a>
+                                    <form method="POST" action="molhos.php" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                        <input type="hidden" name="acao_molho" value="toggle">
+                                        <input type="hidden" name="molho_id" value="<?php echo (int)$m['id']; ?>">
+                                        <button type="submit" class="btn btn-sm btn-outline-<?php echo $m['disponivel'] ? 'warning' : 'success'; ?>" title="Alternar Disponibilidade"><i class="bi bi-power"></i></button>
+                                    </form>
                                     <button class="btn btn-sm btn-outline-primary" onclick='editarMolho(<?php echo json_encode($m); ?>)' title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <a href="molhos.php?excluir=<?php echo $m['id']; ?>&csrf_token=<?php echo $csrfToken; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Deseja realmente excluir este molho?');" title="Excluir">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
+                                    <form method="POST" action="molhos.php" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este molho?');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                        <input type="hidden" name="acao_molho" value="excluir">
+                                        <input type="hidden" name="molho_id" value="<?php echo (int)$m['id']; ?>">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>
+                                    </form>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

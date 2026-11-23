@@ -1,10 +1,10 @@
 <?php
 $databaseUrl = getenv('DATABASE_URL');
 $databaseConfig = $databaseUrl ? parse_url($databaseUrl) : [];
-$host = $databaseConfig['host'] ?? (getenv('TIDB_HOST') ?: getenv('MYSQLHOST'));
-$port = $databaseConfig['port'] ?? (getenv('TIDB_PORT') ?: getenv('MYSQLPORT') ?: '3306');
-$username = $databaseConfig['user'] ?? (getenv('TIDB_USER') ?: getenv('MYSQLUSER') ?: 'root');
-$password = isset($databaseConfig['pass']) ? urldecode($databaseConfig['pass']) : getenv('MYSQLPASSWORD');
+$host = $databaseConfig['host'] ?? (getenv('TIDB_HOST') ?: getenv('MYSQLHOST') ?: getenv('DB_HOST'));
+$port = $databaseConfig['port'] ?? (getenv('TIDB_PORT') ?: getenv('MYSQLPORT') ?: getenv('DB_PORT') ?: '3306');
+$username = $databaseConfig['user'] ?? (getenv('TIDB_USER') ?: getenv('MYSQLUSER') ?: getenv('DB_USER') ?: 'root');
+$password = isset($databaseConfig['pass']) ? urldecode($databaseConfig['pass']) : (getenv('TIDB_PASSWORD') ?: getenv('MYSQLPASSWORD') ?: getenv('DB_PASS'));
 $password = getenv('TIDB_PASSWORD') ?: $password;
 $database = isset($databaseConfig['path']) ? ltrim($databaseConfig['path'], '/') : (getenv('TIDB_DATABASE') ?: getenv('DB_NAME') ?: 'cria_fatia');
 $pdoOptions = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];
@@ -14,7 +14,7 @@ if (getenv('TIDB_HOST')) {
     $pdoOptions[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
 }
 
-if (!$host || $password === false) {
+if (!$host || $password === false || $password === null) {
     exit(0);
 }
 

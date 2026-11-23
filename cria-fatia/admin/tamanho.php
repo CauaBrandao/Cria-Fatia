@@ -14,16 +14,19 @@ $csrfToken = gerarCsrfToken();
  * O preço do tamanho é "preco_base", consumido em cliente/montar.php.
  */
 
-if (isset($_GET['toggle'])) {
-    if (!validarCsrfToken($_GET['csrf_token'] ?? '')) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao_tamanho'])) {
+    if (!validarCsrfToken($_POST['csrf_token'] ?? '')) {
         $erro = 'Ação inválida (CSRF).';
     } else {
-        $id = (int) $_GET['toggle'];
+        $id = (int) ($_POST['tamanho_id'] ?? 0);
+        $acao = $_POST['acao_tamanho'];
         $stmt = $pdo->prepare("SELECT nome, disponivel FROM tamanhos WHERE id = ?");
         $stmt->execute([$id]);
         $tamanho = $stmt->fetch();
 
-        if ($tamanho) {
+        if (!$tamanho) {
+            $erro = 'Tamanho não encontrado.';
+        } elseif ($acao === 'toggle') {
             $novoStatus = (int) !$tamanho['disponivel'];
             $update = $pdo->prepare("UPDATE tamanhos SET disponivel = ? WHERE id = ?");
             $update->execute([$novoStatus, $id]);
@@ -38,22 +41,7 @@ if (isset($_GET['toggle'])) {
                 'Alterou a disponibilidade do tamanho: ' . $tamanho['nome']
             );
             $msg = 'Disponibilidade do tamanho atualizada com sucesso!';
-        } else {
-            $erro = 'Tamanho não encontrado.';
-        }
-    }
-}
-
-if (isset($_GET['excluir'])) {
-    if (!validarCsrfToken($_GET['csrf_token'] ?? '')) {
-        $erro = 'Ação inválida (CSRF).';
-    } else {
-        $id = (int) $_GET['excluir'];
-        $stmt = $pdo->prepare("SELECT nome FROM tamanhos WHERE id = ?");
-        $stmt->execute([$id]);
-        $tamanho = $stmt->fetch();
-
-        if ($tamanho) {
+        } elseif ($acao === 'excluir') {
             try {
                 $delete = $pdo->prepare("DELETE FROM tamanhos WHERE id = ?");
                 $delete->execute([$id]);
@@ -72,7 +60,7 @@ if (isset($_GET['excluir'])) {
                 $erro = 'Não foi possível excluir: este tamanho já está vinculado a pedidos. Desative sua disponibilidade.';
             }
         } else {
-            $erro = 'Tamanho não encontrado.';
+            $erro = 'Ação administrativa inválida.';
         }
     }
 }
@@ -287,19 +275,11 @@ $tamanhos = $pdo->query("SELECT * FROM tamanhos ORDER BY nome ASC")->fetchAll();
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-end text-nowrap">
-                                        <a href="tamanho.php?toggle=<?= (int) $t['id'] ?>&csrf_token=<?= urlencode($csrfToken) ?>"
-                                           class="btn btn-sm btn-outline-<?= $t['disponivel'] ? 'warning' : 'success' ?>"
-                                           title="Alternar disponibilidade">
-                                            <i class="bi bi-power"></i>
-                                        </a>
+                                        <form method="POST" action="tamanho.php" class="d-inline"><input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>"><input type="hidden" name="acao_tamanho" value="toggle"><input type="hidden" name="tamanho_id" value="<?= (int)$t['id'] ?>"><button type="submit" class="btn btn-sm btn-outline-<?= $t['disponivel'] ? 'warning' : 'success' ?>" title="Alternar disponibilidade"><i class="bi bi-power"></i></button></form>
                                         <a href="tamanho.php?editar=<?= (int) $t['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar">
                                             <i class="bi bi-pencil"></i>
                                         </a>
-                                        <a href="tamanho.php?excluir=<?= (int) $t['id'] ?>&csrf_token=<?= urlencode($csrfToken) ?>"
-                                           class="btn btn-sm btn-outline-danger"
-                                           onclick="return confirm('Deseja realmente excluir este tamanho?');" title="Excluir">
-                                            <i class="bi bi-trash"></i>
-                                        </a>
+                                        <form method="POST" action="tamanho.php" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este tamanho?');"><input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>"><input type="hidden" name="acao_tamanho" value="excluir"><input type="hidden" name="tamanho_id" value="<?= (int)$t['id'] ?>"><button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button></form>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
