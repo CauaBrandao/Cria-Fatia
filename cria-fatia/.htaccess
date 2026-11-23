@@ -1,0 +1,6 @@
+Options -Indexes
+RewriteEngine On
+
+<FilesMatch "\.(sql|md)$">
+    Require all denied
+</FilesMatch>

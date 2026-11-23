@@ -1,0 +1,190 @@
+/* ==========================================================
+   CRIA FATIA — DESIGN SYSTEM PADRÃO & PROFISSIONAL
+   ========================================================== */
+
+:root {
+    --primary: #e65100;
+    --primary-hover: #f57c00;
+    --accent: #ffb74d;
+    --dark-bg: #1e1e24;
+    --light-bg: #fdfbf7;
+    --card-bg: #ffffff;
+    --card-border: #ebd9c8;
+    --text-main: #2b2b2b;
+    --text-heading: #212529;
+    --text-muted: #6c757d;
+    --header-bg: #faf5ee;
+    --navbar-bg: #1e1e24;
+    --navbar-border: #e65100;
+    --radius-sm: 12px;
+    --radius-md: 16px;
+    --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 10px 30px rgba(230, 81, 0, 0.12);
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: var(--light-bg);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* NAVBAR */
+.navbar {
+    background: var(--navbar-bg) !important;
+    border-bottom: 3px solid var(--navbar-border) !important;
+    padding: 0.85rem 0;
+}
+
+.navbar-brand {
+    font-weight: 800;
+    font-size: 1.5rem;
+    color: #ffb74d !important;
+}
+
+.nav-link {
+    color: #e0e0e0 !important;
+    font-weight: 600;
+}
+
+.nav-link:hover, .nav-link.active {
+    color: #ffb74d !important;
+}
+
+/* TÍTULOS E TEXTOS */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-heading) !important;
+}
+
+.text-dark {
+    color: var(--text-heading) !important;
+}
+
+.text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* CARDS */
+.card {
+    background-color: var(--card-bg) !important;
+    border: 1px solid var(--card-border) !important;
+    color: var(--text-main) !important;
+    border-radius: var(--radius-md) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+.card-header {
+    background-color: var(--header-bg) !important;
+    border-bottom: 1px solid var(--card-border) !important;
+    font-weight: 700;
+    color: var(--text-heading) !important;
+}
+
+/* COMPONENTES DO MONTADOR E FORMULÁRIOS */
+.selector-card {
+    cursor: pointer;
+    border: 2px solid var(--card-border) !important;
+    background-color: var(--card-bg) !important;
+    color: var(--text-main) !important;
+    border-radius: var(--radius-sm);
+    padding: 1.25rem;
+    text-align: center;
+    transition: all 0.2s ease-in-out;
+}
+
+.selector-card:hover {
+    border-color: var(--primary) !important;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.selector-card.selected {
+    border-color: var(--primary) !important;
+    background-color: var(--header-bg) !important;
+    box-shadow: var(--shadow-lg);
+}
+
+.ingredient-option {
+    background-color: var(--card-bg) !important;
+    border: 1px solid var(--card-border) !important;
+    color: var(--text-main) !important;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease;
+}
+
+.ingredient-option:hover {
+    border-color: var(--primary) !important;
+}
+
+.ingredient-option .form-check-label,
+.ingredient-option span.fw-semibold {
+    color: var(--text-heading) !important;
+}
+
+/* INPUTS E CONTROLES */
+.form-control, .form-select {
+    background-color: var(--card-bg) !important;
+    border: 1px solid var(--card-border) !important;
+    color: var(--text-main) !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 0.75rem 1.25rem;
+    font-weight: 500;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(245, 124, 0, 0.2) !important;
+}
+
+/* TABELAS */
+.table {
+    color: var(--text-main) !important;
+    border-color: var(--card-border) !important;
+}
+
+.table th, .table td {
+    background-color: transparent !important;
+    border-color: var(--card-border) !important;
+}
+
+/* BOTÕES PRIMÁRIOS */
+.btn-warning {
+    background: linear-gradient(135deg, #ffb74d 0%, #f57c00 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+    font-weight: 700;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: 0 4px 15px rgba(245, 124, 0, 0.3);
+    transition: all 0.2s ease;
+}
+
+.btn-warning:hover {
+    filter: brightness(1.05);
+    color: #ffffff !important;
+    transform: translateY(-1px);
+}
+
+/* ==========================================================
+   RODAPÉ COMPACTO E ELEGANTE
+   ========================================================== */
+.cf-footer {
+    background: #111317 !important;
+    color: #e2e4e9 !important;
+    border-top: 2px solid var(--navbar-border);
+    margin-top: auto;
+}
+
+.cf-link {
+    color: rgba(255, 255, 255, 0.8) !important;
+    text-decoration: none !important;
+    font-size: 0.88rem;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.cf-link:hover {
+    color: #ffb74d !important;
+    text-decoration: underline !important;
+}
