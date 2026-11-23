@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/config.php';
+
 if (!defined('BASE_URL')) {
     $forwardedProto = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '';
     $protocol = ($forwardedProto === 'https' || (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')) ? 'https://' : 'http://';
@@ -32,6 +34,13 @@ try {
     if (session_status() === PHP_SESSION_NONE) {
         require_once __DIR__ . '/database_session_handler.php';
         session_set_save_handler(new DatabaseSessionHandler($pdo), true);
+        session_set_cookie_params([
+            'lifetime' => 0,
+            'path' => '/',
+            'secure' => str_starts_with(BASE_URL, 'https://'),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
         session_start();
     }
 } catch (PDOException $e) {
@@ -41,4 +50,3 @@ try {
             <p>Por favor, verifique se o MySQL do WAMP está ligado e se o banco <b>cria_fatia</b> foi importado corretamente.</p>
          </div>");
 }
-?>
