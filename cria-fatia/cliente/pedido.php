@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/conexao.php';
 require_once __DIR__ . '/../includes/funcoes.php';
+require_once __DIR__ . '/../includes/pix_demo.php';
 
 $codigo = trim($_GET['codigo'] ?? $_POST['codigo'] ?? '');
 $pedido = null;
@@ -945,10 +946,11 @@ require_once __DIR__ . '/../includes/header.php';
                             </h5>
 
                             <?php if (($pedido['forma_pagamento'] ?? 'pix') === 'pix'): ?>
-                                <div class="alert alert-warning mb-0">
-                                    <strong>Pix não confirmado pelo sistema.</strong>
-                                    Confirme a chave e o valor diretamente com a equipe antes de realizar qualquer pagamento. Este pedido só registra a forma de pagamento escolhida.
-                                </div>
+                                <?php if (in_array($pedido['status'] ?? '', ['cancelado'], true)): ?>
+                                    <div class="alert alert-secondary mb-0">Pedido cancelado — nenhum pagamento é necessário.</div>
+                                <?php else: ?>
+                                    <?php renderizarPixDemo($pedido['valor_total'], $pedido['codigo_acompanhamento'] ?? '***'); ?>
+                                <?php endif; ?>
                             <?php elseif (($pedido['forma_pagamento'] ?? '') === 'dinheiro'): ?>
                                 <div class="alert alert-warning mb-0 p-3">
                                     <div class="fw-bold mb-1"><i class="bi bi-cash me-1"></i> Pagamento em Dinheiro na Entrega / Retirada</div>
@@ -1245,4 +1247,5 @@ setInterval(() => {
 <?php endif; ?>
 </script>
 
+<?php scriptCopiarPixDemo(); ?>
 <?php include("../includes/footer.php"); ?>
