@@ -32,34 +32,53 @@ require_once __DIR__ . '/funcoes.php';
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
+<?php
+  $perfilLogado = $_SESSION['usuario_perfil'] ?? null;
+  $paginaAtual = $_SERVER['SCRIPT_NAME'] ?? '';
+  $ativo = fn($trecho) => strpos($paginaAtual, $trecho) !== false ? ' active' : '';
+  $nomesPerfil = ['admin' => 'Administrador', 'atendimento' => 'Atendimento', 'cozinha' => 'Cozinha'];
+?>
+<?php if ($perfilLogado): ?>
+      <!-- Menu da equipe: só os painéis que o perfil pode usar -->
+      <ul class="navbar-nav mx-auto align-items-lg-center gap-lg-1">
+        <?php if (in_array($perfilLogado, ['admin', 'atendimento'], true)): ?>
+            <li class="nav-item"><a class="nav-link<?php echo $ativo('/atendimento/'); ?>" href="<?php echo BASE_URL; ?>atendimento/index.php"><i class="bi bi-headset me-1"></i> Atendimento</a></li>
+        <?php endif; ?>
+        <?php if (in_array($perfilLogado, ['admin', 'cozinha'], true)): ?>
+            <li class="nav-item"><a class="nav-link<?php echo $ativo('/cozinha/'); ?>" href="<?php echo BASE_URL; ?>cozinha/index.php"><i class="bi bi-fire me-1"></i> Cozinha</a></li>
+        <?php endif; ?>
+        <?php if ($perfilLogado === 'admin'): ?>
+            <li class="nav-item"><a class="nav-link<?php echo $ativo('/admin/'); ?>" href="<?php echo BASE_URL; ?>admin/dashboard.php"><i class="bi bi-speedometer2 me-1"></i> Gestão</a></li>
+        <?php endif; ?>
+      </ul>
+      <ul class="navbar-nav align-items-lg-center">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="cf-avatar"><?php echo htmlspecialchars(mb_strtoupper(mb_substr($_SESSION['usuario_nome'] ?? '?', 0, 1, 'UTF-8'), 'UTF-8')); ?></span>
+            <span class="d-flex flex-column lh-sm text-start">
+              <span class="small fw-bold text-white"><?php echo htmlspecialchars($_SESSION['usuario_nome'] ?? ''); ?></span>
+              <span class="cf-perfil"><?php echo htmlspecialchars($nomesPerfil[$perfilLogado] ?? $perfilLogado); ?></span>
+            </span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end shadow">
+            <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>" target="_blank"><i class="bi bi-shop me-2"></i>Ver site do cliente</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="<?php echo BASE_URL; ?>logout.php"><i class="bi bi-box-arrow-right me-2"></i>Sair</a></li>
+          </ul>
+        </li>
+      </ul>
+<?php else: ?>
+      <!-- Menu do cliente -->
       <ul class="navbar-nav mx-auto align-items-lg-center">
         <li class="nav-item"><a class="nav-link" href="<?php echo BASE_URL; ?>"><i class="bi bi-house-door me-1"></i> Início</a></li>
         <li class="nav-item"><a class="nav-link" href="<?php echo BASE_URL; ?>#cardapio"><i class="bi bi-book me-1"></i> Cardápio</a></li>
-        <li class="nav-item"><a class="nav-link" href="<?php echo BASE_URL; ?>cliente/montar.php"><i class="bi bi-sliders me-1"></i> Montar Pizza</a></li>
-        <li class="nav-item"><a class="nav-link" href="<?php echo BASE_URL; ?>cliente/pedido.php"><i class="bi bi-ticket-detailed me-1"></i> Acompanhar Pedido</a></li>
-
-        <?php if (isset($_SESSION['usuario_id'])): ?>
-            <?php if (in_array($_SESSION['usuario_perfil'], ['admin', 'atendimento'])): ?>
-                <li class="nav-item"><a class="nav-link" href="<?php echo BASE_URL; ?>atendimento/index.php"><i class="bi bi-headset me-1"></i> Atendimento</a></li>
-            <?php endif; ?>
-            <?php if (in_array($_SESSION['usuario_perfil'], ['admin', 'cozinha'])): ?>
-                <li class="nav-item"><a class="nav-link" href="<?php echo BASE_URL; ?>cozinha/index.php"><i class="bi bi-fire me-1"></i> Cozinha</a></li>
-            <?php endif; ?>
-            <?php if ($_SESSION['usuario_perfil'] === 'admin'): ?>
-                <li class="nav-item"><a class="nav-link text-warning" href="<?php echo BASE_URL; ?>admin/dashboard.php"><i class="bi bi-speedometer2 me-1"></i> Gestão</a></li>
-            <?php endif; ?>
-        <?php endif; ?>
+        <li class="nav-item"><a class="nav-link<?php echo $ativo('/cliente/montar'); ?>" href="<?php echo BASE_URL; ?>cliente/montar.php"><i class="bi bi-sliders me-1"></i> Montar Pizza</a></li>
+        <li class="nav-item"><a class="nav-link<?php echo $ativo('/cliente/pedido'); ?>" href="<?php echo BASE_URL; ?>cliente/pedido.php"><i class="bi bi-ticket-detailed me-1"></i> Acompanhar Pedido</a></li>
       </ul>
-
-      <!-- Ações Direita: Login / Usuário logado -->
-      <ul class="navbar-nav align-items-lg-center gap-2">
-        <?php if (isset($_SESSION['usuario_id'])): ?>
-            <li class="nav-item"><span class="nav-link text-white-50 small">Olá, <strong class="text-white"><?php echo htmlspecialchars($_SESSION['usuario_nome']); ?></strong></span></li>
-            <li class="nav-item"><a class="btn btn-outline-danger btn-sm rounded-pill px-3" href="<?php echo BASE_URL; ?>logout.php"><i class="bi bi-box-arrow-right"></i> Sair</a></li>
-        <?php else: ?>
-            <li class="nav-item"><a class="btn btn-warning btn-sm rounded-pill px-3 fw-bold" href="<?php echo BASE_URL; ?>login.php"><i class="bi bi-person me-1"></i> Entrar</a></li>
-        <?php endif; ?>
+      <ul class="navbar-nav align-items-lg-center">
+        <li class="nav-item"><a class="btn btn-sm btn-outline-light rounded-pill px-3" href="<?php echo BASE_URL; ?>login.php"><i class="bi bi-person me-1"></i> Área da equipe</a></li>
       </ul>
+<?php endif; ?>
     </div>
   </div>
 </nav>
