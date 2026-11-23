@@ -43,3 +43,27 @@ if (!$tableExists) {
     $pdo->exec($schema);
     fwrite(STDOUT, "Banco Cria Fatia inicializado.\n");
 }
+
+// Aplica atualizações incrementais também em bancos que já estão em produção.
+$pdo->exec(
+    'CREATE TABLE IF NOT EXISTS schema_migrations (' .
+    'nome VARCHAR(255) PRIMARY KEY, aplicado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP' .
+    ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
+);
+
+$migrations = glob(__DIR__ . '/migrations/*.sql') ?: [];
+sort($migrations, SORT_STRING);
+
+foreach ($migrations as $migration) {
+    $name = basename($migration);
+    $check = $pdo->prepare('SELECT 1 FROM schema_migrations WHERE nome = ?');
+    $check->execute([$name]);
+    if ($check->fetchColumn()) {
+        continue;
+    }
+
+    $pdo->exec(file_get_contents($migration));
+    $record = $pdo->prepare('INSERT INTO schema_migrations (nome) VALUES (?)');
+    $record->execute([$name]);
+    fwrite(STDOUT, "Migração aplicada: {$name}\n");
+}
