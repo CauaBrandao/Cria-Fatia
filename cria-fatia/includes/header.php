@@ -53,6 +53,11 @@ require_once __DIR__ . '/funcoes.php';
 
       <!-- Ações Direita: Login / Usuário logado -->
       <ul class="navbar-nav align-items-lg-center gap-2">
+        <?php if (!empty($_SESSION['cliente_id'])): ?>
+            <li class="nav-item"><a class="btn btn-warning btn-sm rounded-pill px-3 fw-bold" href="<?php echo BASE_URL; ?>cliente/conta.php"><i class="bi bi-person-check me-1"></i> Meus pedidos</a></li>
+        <?php elseif (!isset($_SESSION['usuario_id'])): ?>
+            <li class="nav-item"><a class="btn btn-outline-light btn-sm rounded-pill px-3" href="<?php echo BASE_URL; ?>cliente/entrar.php"><i class="bi bi-person me-1"></i> Cliente</a></li>
+        <?php endif; ?>
         <?php if (isset($_SESSION['usuario_id'])): ?>
             <li class="nav-item"><span class="nav-link text-white-50 small">Olá, <strong class="text-white"><?php echo htmlspecialchars($_SESSION['usuario_nome']); ?></strong></span></li>
             <li class="nav-item"><a class="btn btn-outline-danger btn-sm rounded-pill px-3" href="<?php echo BASE_URL; ?>logout.php"><i class="bi bi-box-arrow-right"></i> Sair</a></li>

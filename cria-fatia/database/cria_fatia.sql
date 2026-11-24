@@ -58,7 +58,9 @@ CREATE TABLE IF NOT EXISTS ingredientes (
     descricao TEXT DEFAULT NULL,
     categoria VARCHAR(100) DEFAULT NULL,
     preco_adicional DECIMAL(10, 2) NOT NULL DEFAULT 3.00,
-    disponivel TINYINT(1) NOT NULL DEFAULT 1
+    disponivel TINYINT(1) NOT NULL DEFAULT 1,
+    tipo_item ENUM('ingrediente','acompanhamento') NOT NULL DEFAULT 'ingrediente',
+    UNIQUE KEY uq_ingredientes_nome (nome)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO ingredientes (id, nome, preco_adicional) VALUES
@@ -93,6 +95,16 @@ CREATE TABLE IF NOT EXISTS usuarios (
     perfil ENUM('admin', 'atendimento', 'cozinha') NOT NULL DEFAULT 'atendimento'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS clientes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    email VARCHAR(190) NOT NULL UNIQUE,
+    senha VARCHAR(255) NOT NULL,
+    telefone VARCHAR(20) DEFAULT NULL,
+    criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Table: pedidos
 CREATE TABLE IF NOT EXISTS pedidos (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -106,12 +118,17 @@ CREATE TABLE IF NOT EXISTS pedidos (
     forma_pagamento ENUM('pix', 'cartao', 'dinheiro') NOT NULL DEFAULT 'pix',
     taxa_entrega DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     troco_para DECIMAL(10, 2) DEFAULT NULL,
+    troco_reservado DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    cliente_id INT DEFAULT NULL,
+    demo TINYINT(1) NOT NULL DEFAULT 0,
     valor_total DECIMAL(10, 2) NOT NULL,
     status ENUM('pendente', 'em_producao', 'pronto', 'finalizado', 'entregue', 'cancelado') NOT NULL DEFAULT 'pendente',
     criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_status (status),
     INDEX idx_criado_em (criado_em),
-    INDEX idx_codigo (codigo_acompanhamento)
+    INDEX idx_codigo (codigo_acompanhamento),
+    INDEX idx_pedidos_cliente (cliente_id),
+    INDEX idx_pedidos_demo (demo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: tipos_massas
@@ -246,7 +263,7 @@ CREATE TABLE IF NOT EXISTS caixa_movimentacoes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     caixa_id INT NOT NULL,
     usuario_id INT NOT NULL,
-    tipo ENUM('entrada', 'saida', 'venda') NOT NULL,
+    tipo ENUM('entrada', 'saida', 'venda', 'reserva_troco', 'liberacao_troco') NOT NULL,
     origem VARCHAR(100) NOT NULL,
     valor DECIMAL(10, 2) NOT NULL,
     justificativa TEXT DEFAULT NULL,
@@ -255,6 +272,18 @@ CREATE TABLE IF NOT EXISTS caixa_movimentacoes (
     FOREIGN KEY (caixa_id) REFERENCES caixas(id) ON DELETE CASCADE,
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
     FOREIGN KEY (pedido_id) REFERENCES pedidos(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS cancelamentos_pedidos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    pedido_id INT NOT NULL,
+    usuario_id INT NOT NULL,
+    status_original VARCHAR(30) NOT NULL,
+    motivo TEXT NOT NULL,
+    criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (pedido_id) REFERENCES pedidos(id),
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+    INDEX idx_cancelamento_pedido (pedido_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS php_sessions (

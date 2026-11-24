@@ -14,7 +14,8 @@ $massas = $pdo->query("
     ORDER BY tm.nome ASC
 ")->fetchAll();
 $bordas = $pdo->query("SELECT * FROM bordas WHERE disponivel = 1 ORDER BY id ASC")->fetchAll();
-$ingredientes = $pdo->query("SELECT * FROM ingredientes WHERE disponivel = 1 ORDER BY nome ASC")->fetchAll();
+$ingredientes = $pdo->query("SELECT * FROM ingredientes WHERE disponivel = 1 AND tipo_item = 'ingrediente' ORDER BY nome ASC")->fetchAll();
+$acompanhamentos = $pdo->query("SELECT * FROM ingredientes WHERE disponivel = 1 AND tipo_item = 'acompanhamento' ORDER BY nome ASC")->fetchAll();
 $molhos = $pdo->query("SELECT * FROM molhos WHERE disponivel = 1 ORDER BY nome ASC")->fetchAll();
 $token = gerarCsrfToken();
 ?>
@@ -71,7 +72,12 @@ $token = gerarCsrfToken();
                 </div>
             </div>
 
-            <div class="card mb-4 border-0 shadow-sm rounded-4"><div class="card-header bg-white p-4"><h4 class="mb-1 fw-bold">04. Borda recheada</h4><small class="text-muted">Escolha uma opção para finalizar.</small></div><div class="card-body p-4"><div class="row g-3">
+            <div class="card mb-4 border-0 shadow-sm rounded-4"><div class="card-header bg-white p-4"><h4 class="mb-1 fw-bold">04. Acompanhamentos</h4><small class="text-muted">Opcionais, fora do limite de 8 ingredientes. Máximo de 4.</small></div><div class="card-body p-4"><div class="row g-3">
+                <?php foreach($acompanhamentos as $ing): ?><div class="col-md-6"><label class="ingredient-option d-flex align-items-center justify-content-between gap-2 p-3 border rounded-3 h-100" for="acompanhamento_<?php echo (int)$ing['id']; ?>"><span class="form-check mb-0"><input class="form-check-input acompanhamento-checkbox" type="checkbox" name="ingredientes[]" value="<?php echo (int)$ing['id']; ?>" data-preco="<?php echo (float)$ing['preco_adicional']; ?>" id="acompanhamento_<?php echo (int)$ing['id']; ?>"> <span class="fw-semibold"><?php echo htmlspecialchars($ing['nome']); ?></span></span><span class="text-success small fw-bold">+ R$ <?php echo number_format($ing['preco_adicional'],2,',','.'); ?></span></label></div><?php endforeach; ?>
+                <?php if (!$acompanhamentos): ?><p class="text-muted mb-0">Nenhum acompanhamento disponível.</p><?php endif; ?>
+            </div></div></div>
+
+            <div class="card mb-4 border-0 shadow-sm rounded-4"><div class="card-header bg-white p-4"><h4 class="mb-1 fw-bold">05. Borda recheada</h4><small class="text-muted">Escolha uma opção para finalizar.</small></div><div class="card-body p-4"><div class="row g-3">
                 <?php foreach($bordas as $i=>$b): ?><div class="col-md-6"><div class="selector-card h-100 p-3 rounded-3 border bg-white cursor-pointer <?php echo $i===0?'selected border-warning bg-warning bg-opacity-10':''; ?>" onclick="selecionarBorda(this,<?php echo (int)$b['id']; ?>)"><div class="fw-bold"><?php echo htmlspecialchars($b['nome']); ?></div><small class="text-success">+ R$ <?php echo number_format($b['preco'],2,',','.'); ?></small></div></div><?php endforeach; ?>
             </div><select class="form-select d-none" name="borda_id" id="borda_id" required><?php foreach($bordas as $i=>$b): ?><option value="<?php echo (int)$b['id']; ?>" data-preco="<?php echo (float)$b['preco']; ?>" <?php echo $i===0?'selected':''; ?>><?php echo htmlspecialchars($b['nome']); ?></option><?php endforeach; ?></select></div></div>
 
@@ -135,7 +141,7 @@ function calcularPrecoTotal(){
     const nomes=[];
     const previewContainer=document.getElementById('pizza_toppings_preview');
     if (previewContainer) previewContainer.innerHTML = '';
-    document.querySelectorAll('.ingrediente-checkbox:checked').forEach(x=>{
+    document.querySelectorAll('.ingrediente-checkbox:checked, .acompanhamento-checkbox:checked').forEach(x=>{
         total+=parseFloat(x.dataset.preco)||0;
         const nome = x.parentElement.querySelector('span').textContent.trim();
         nomes.push(nome);
@@ -176,6 +182,10 @@ document.addEventListener('DOMContentLoaded',()=>{
         }
     }));
     document.querySelectorAll('.molho-checkbox').forEach(x=>x.addEventListener('change',calcularPrecoTotal));
+    document.querySelectorAll('.acompanhamento-checkbox').forEach(x=>x.addEventListener('change',event=>{
+        if (document.querySelectorAll('.acompanhamento-checkbox:checked').length > 4) { event.target.checked = false; alert('Selecione no máximo 4 acompanhamentos.'); }
+        calcularPrecoTotal();
+    }));
     atualizarLimiteIngredientes();
     calcularPrecoTotal();
 });

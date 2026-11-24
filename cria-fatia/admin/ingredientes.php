@@ -50,6 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['salvar_ingrediente'])
         $descricao = trim($_POST['descricao'] ?? '');
         $preco = (float)str_replace(',', '.', $_POST['preco_adicional'] ?? '0');
         $disponivel = isset($_POST['disponivel']) ? 1 : 0;
+        $tipoItem = ($_POST['tipo_item'] ?? '') === 'acompanhamento' ? 'acompanhamento' : 'ingrediente';
 
         if ($nome === '' || $preco < 0) {
             $erro = 'Informe um nome válido e um preço não negativo.';
@@ -59,13 +60,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['salvar_ingrediente'])
                 $old->execute([$id]);
                 $oldData = $old->fetch();
 
-                $stmt = $pdo->prepare("UPDATE ingredientes SET nome = ?, categoria = ?, descricao = ?, preco_adicional = ?, disponivel = ? WHERE id = ?");
-                $stmt->execute([$nome, $categoria ?: null, $descricao ?: null, $preco, $disponivel, $id]);
+                $stmt = $pdo->prepare("UPDATE ingredientes SET nome = ?, categoria = ?, descricao = ?, preco_adicional = ?, disponivel = ?, tipo_item = ? WHERE id = ?");
+                $stmt->execute([$nome, $categoria ?: null, $descricao ?: null, $preco, $disponivel, $tipoItem, $id]);
                 registrarAuditoria($pdo, 'ATUALIZAR', 'ingredientes', $id, $oldData, ['nome' => $nome, 'preco_adicional' => $preco], "Atualizou ingrediente: $nome");
                 $msg = 'Ingrediente atualizado com sucesso!';
             } else {
-                $stmt = $pdo->prepare("INSERT INTO ingredientes (nome, categoria, descricao, preco_adicional, disponivel) VALUES (?, ?, ?, ?, ?)");
-                $stmt->execute([$nome, $categoria ?: null, $descricao ?: null, $preco, $disponivel]);
+                $stmt = $pdo->prepare("INSERT INTO ingredientes (nome, categoria, descricao, preco_adicional, disponivel, tipo_item) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$nome, $categoria ?: null, $descricao ?: null, $preco, $disponivel, $tipoItem]);
                 $novoId = (int)$pdo->lastInsertId();
                 registrarAuditoria($pdo, 'CADASTRAR', 'ingredientes', $novoId, null, $nome, "Cadastrou novo ingrediente: $nome");
                 $msg = 'Ingrediente cadastrado com sucesso!';
@@ -129,6 +130,14 @@ $categoriasExistentes = $pdo->query("SELECT DISTINCT categoria FROM ingredientes
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label fw-bold">Tipo de item *</label>
+                        <select name="tipo_item" class="form-select" required>
+                            <option value="ingrediente" <?= ($editar['tipo_item'] ?? 'ingrediente') === 'ingrediente' ? 'selected' : '' ?>>Ingrediente principal</option>
+                            <option value="acompanhamento" <?= ($editar['tipo_item'] ?? '') === 'acompanhamento' ? 'selected' : '' ?>>Acompanhamento</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label fw-bold">Categoria</label>
                         <input type="text" name="categoria" class="form-control" list="listaCategorias"
                                placeholder="Ex: Queijos, Carnes, Vegetais" value="<?= htmlspecialchars($editar['categoria'] ?? '') ?>">
@@ -185,7 +194,7 @@ $categoriasExistentes = $pdo->query("SELECT DISTINCT categoria FROM ingredientes
                     <thead class="table-dark">
                         <tr>
                             <th>Ingrediente</th>
-                            <th>Categoria</th>
+                            <th>Tipo / Categoria</th>
                             <th>Preço Adic.</th>
                             <th>Status</th>
                             <th class="text-end">Ações</th>
@@ -201,6 +210,7 @@ $categoriasExistentes = $pdo->query("SELECT DISTINCT categoria FROM ingredientes
                                     <?php endif; ?>
                                 </td>
                                 <td>
+                                    <span class="badge bg-<?= ($ing['tipo_item'] ?? 'ingrediente') === 'acompanhamento' ? 'info' : 'warning' ?> text-dark mb-1"><?= ($ing['tipo_item'] ?? 'ingrediente') === 'acompanhamento' ? 'Acompanhamento' : 'Ingrediente' ?></span><br>
                                     <span class="badge bg-light text-dark border">
                                         <?= htmlspecialchars($ing['categoria'] ?: 'Geral') ?>
                                     </span>

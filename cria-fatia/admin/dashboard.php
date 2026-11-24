@@ -4,6 +4,10 @@ require_once __DIR__ . '/../includes/funcoes.php';
 checarPerfil(['admin']);
 require_once __DIR__ . '/../includes/header.php';
 
+$dataInicio = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['inicio'] ?? '') ? $_GET['inicio'] : date('Y-m-d');
+$dataFim = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['fim'] ?? '') ? $_GET['fim'] : date('Y-m-d');
+if ($dataInicio > $dataFim) { [$dataInicio, $dataFim] = [$dataFim, $dataInicio]; }
+
 // Indicadores Operacionais da Gestão
 $totalPedidos = $pdo->query("SELECT COUNT(*) FROM pedidos")->fetchColumn();
 $faturamentoTotal = $pdo->query("SELECT SUM(valor_total) FROM pedidos WHERE status != 'cancelado'")->fetchColumn() ?: 0;
@@ -24,14 +28,21 @@ $diasLabels = array_column($vendasDias, 'dia');
 $faturamentoData = array_map('floatval', array_column($vendasDias, 'faturamento'));
 $pedidosData = array_map('intval', array_column($vendasDias, 'total_pedidos'));
 
-$topIngredientes = $pdo->query("
-    SELECT i.nome, COUNT(pic.id) as total
+$stmtIngredientes = $pdo->prepare("
+    SELECT i.nome, i.tipo_item, COUNT(pic.id) as total
     FROM pedido_item_customizacoes pic
     JOIN ingredientes i ON pic.ingrediente_id = i.id
-    GROUP BY i.id, i.nome
+    JOIN pedido_itens pi ON pi.id = pic.pedido_item_id
+    JOIN pedidos p ON p.id = pi.pedido_id
+    WHERE p.status <> 'cancelado' AND p.criado_em >= ? AND p.criado_em < DATE_ADD(?, INTERVAL 1 DAY) AND pic.acao = 'adicionar'
+    GROUP BY i.id, i.nome, i.tipo_item
     ORDER BY total DESC
-    LIMIT 5
-")->fetchAll();
+    LIMIT 20
+");
+$stmtIngredientes->execute([$dataInicio, $dataFim]);
+$topIngredientes = $stmtIngredientes->fetchAll();
+$stmtResumo = $pdo->prepare("SELECT COUNT(DISTINCT p.id) pedidos, COUNT(pi.id) pizzas FROM pedidos p LEFT JOIN pedido_itens pi ON pi.pedido_id=p.id WHERE p.status <> 'cancelado' AND p.criado_em >= ? AND p.criado_em < DATE_ADD(?, INTERVAL 1 DAY)");
+$stmtResumo->execute([$dataInicio, $dataFim]); $resumoPeriodo = $stmtResumo->fetch();
 
 $tiposEntrega = $pdo->query("
     SELECT tipo_entrega, COUNT(*) as qtd
@@ -42,6 +53,7 @@ $tiposEntrega = $pdo->query("
 ?>
 
 <h2 class="fw-bold mb-3"><i class="bi bi-speedometer2 me-2 text-warning"></i>Painel da Gestão - Bella Roza Pizzaria</h2>
+<form class="card card-body border-0 shadow-sm mb-4" method="get"><div class="row g-3 align-items-end"><div class="col-md-4"><label class="form-label fw-bold">Início</label><input class="form-control" type="date" name="inicio" value="<?= escapar($dataInicio) ?>"></div><div class="col-md-4"><label class="form-label fw-bold">Fim</label><input class="form-control" type="date" name="fim" value="<?= escapar($dataFim) ?>"></div><div class="col-md-4"><button class="btn btn-warning fw-bold w-100">Filtrar relatório</button></div></div></form>
 <div class="d-flex flex-wrap gap-2 mb-4">
     <a href="dashboard.php" class="btn btn-dark fw-bold"><i class="bi bi-speedometer2 me-1"></i> Dashboard</a>
     <a href="tamanho.php" class="btn btn-outline-dark fw-bold"><i class="bi bi-aspect-ratio me-1"></i> Tamanhos</a>
@@ -106,10 +118,10 @@ $tiposEntrega = $pdo->query("
     <div class="col-lg-4 mb-3">
         <div class="card shadow-sm border-0 h-100">
             <div class="card-header bg-white py-3">
-                <span class="fw-bold"><i class="bi bi-pie-chart text-warning me-2"></i>Top Ingredientes Pedidos</span>
+                <span class="fw-bold"><i class="bi bi-bar-chart text-warning me-2"></i>Ingredientes e acompanhamentos</span>
             </div>
             <div class="card-body p-3 d-flex flex-column justify-content-center align-items-center">
-                <canvas id="graficoIngredientes" style="max-height: 240px; max-width: 240px;"></canvas>
+                <canvas id="graficoIngredientes" style="max-height: 280px;"></canvas>
             </div>
         </div>
     </div>
@@ -134,6 +146,8 @@ $tiposEntrega = $pdo->query("
         </div>
     </div>
 </div>
+
+<div class="card shadow-sm border-0 mb-4"><div class="card-header bg-white fw-bold">Relatório detalhado — <?= (int)$resumoPeriodo['pedidos'] ?> pedidos, <?= (int)$resumoPeriodo['pizzas'] ?> pizzas</div><div class="table-responsive"><table class="table table-striped mb-0"><thead><tr><th>Item</th><th>Grupo</th><th>Quantidade</th></tr></thead><tbody><?php foreach($topIngredientes as $item): ?><tr><td><?= escapar($item['nome']) ?></td><td><?= $item['tipo_item'] === 'acompanhamento' ? 'Acompanhamento' : 'Ingrediente' ?></td><td><?= (int)$item['total'] ?> seleções</td></tr><?php endforeach; ?><?php if(!$topIngredientes): ?><tr><td colspan="3" class="text-center text-muted py-4">Sem itens no período.</td></tr><?php endif; ?></tbody></table></div><div class="card-footer small text-muted">Quantidade representa o número de seleções registradas nos itens dos pedidos; não representa peso.</div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -178,20 +192,21 @@ if (ctxVendas) {
 const ctxIng = document.getElementById('graficoIngredientes');
 if (ctxIng) {
     new Chart(ctxIng, {
-        type: 'doughnut',
+        type: 'bar',
         data: {
             labels: <?= json_encode(array_column($topIngredientes, 'nome') ?: ['Nenhum pedido']) ?>,
             datasets: [{
                 data: <?= json_encode(array_map('intval', array_column($topIngredientes, 'total')) ?: [1]) ?>,
-                backgroundColor: ['#ffc107', '#fd7e14', '#20c997', '#0dcaf0', '#6f42c1']
+                backgroundColor: <?= json_encode(array_map(fn($i) => $i['tipo_item'] === 'acompanhamento' ? '#0dcaf0' : '#ffc107', $topIngredientes) ?: ['#adb5bd']) ?>
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { position: 'bottom' }
-            }
+                legend: { display: false }
+            },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { ticks: { autoSkip: false, maxRotation: 45 } } }
         }
     });
 }

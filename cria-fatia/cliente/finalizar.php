@@ -25,14 +25,17 @@ $stmt = $pdo->prepare("SELECT * FROM tipos_massas WHERE id = ? AND disponivel = 
 $stmt = $pdo->prepare("SELECT * FROM bordas WHERE id = ? AND disponivel = 1"); $stmt->execute([$borda_id]); $borda = $stmt->fetch();
 if (!$tamanho || !$borda || !$massa) { unset($_SESSION['dados_pedido']); header('Location: montar.php'); exit; }
 if (!$ingredientesEscolhidos) { $erro = 'Selecione pelo menos um ingrediente para montar sua pizza.'; }
-if (count($ingredientesEscolhidos) > 8) { $erro = 'Selecione no máximo 8 ingredientes para montar sua pizza.'; }
 
 $ingredientesValidos = [];
 if ($ingredientesEscolhidos) {
     $marks = implode(',', array_fill(0, count($ingredientesEscolhidos), '?'));
-    $stmt = $pdo->prepare("SELECT id, nome, preco_adicional FROM ingredientes WHERE disponivel = 1 AND id IN ($marks) ORDER BY nome");
+    $stmt = $pdo->prepare("SELECT id, nome, preco_adicional, tipo_item FROM ingredientes WHERE disponivel = 1 AND id IN ($marks) ORDER BY nome");
     $stmt->execute($ingredientesEscolhidos); $ingredientesValidos = $stmt->fetchAll();
     if (count($ingredientesValidos) !== count($ingredientesEscolhidos)) $erro = 'Um ou mais ingredientes não estão disponíveis. Monte sua pizza novamente.';
+    $qtdPrincipais = count(array_filter($ingredientesValidos, fn($i) => $i['tipo_item'] === 'ingrediente'));
+    $qtdAcompanhamentos = count($ingredientesValidos) - $qtdPrincipais;
+    if ($qtdPrincipais < 1 || $qtdPrincipais > 8) $erro = 'Selecione de 1 a 8 ingredientes principais.';
+    if ($qtdAcompanhamentos > 4) $erro = 'Selecione no máximo 4 acompanhamentos.';
 }
 $molhosValidos = [];
 if ($molhosEscolhidos) {
@@ -69,15 +72,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cliente_nome'])) {
         if ($erro === '' && (empty($cliente_nome) || empty($cliente_telefone))) $erro = 'Preencha seu nome e telefone.';
         if ($erro === '' && $tipo_entrega === 'entrega' && $endereco === '') $erro = 'Informe o endereço de entrega.';
 
+        $trocoNecessario = $troco_para === null ? 0.0 : round($troco_para - $valorTotalValidado, 2);
         if ($erro === '') {
             try {
                 $pdo->beginTransaction();
+                $caixaId = null;
+                if ($forma_pagamento === 'dinheiro' && $trocoNecessario > 0) {
+                    $stmtCaixa = $pdo->query("SELECT id FROM caixas WHERE status = 'aberto' ORDER BY id DESC LIMIT 1 FOR UPDATE");
+                    $caixaId = $stmtCaixa->fetchColumn();
+                    if (!$caixaId) throw new DomainException('Não há caixa aberto para garantir o troco. Escolha Pix/cartão ou tente mais tarde.');
+                    $saldoTroco = saldoDisponivelTroco($pdo, (int)$caixaId);
+                    if ($trocoNecessario > $saldoTroco + 0.0001) throw new DomainException('Troco insuficiente no caixa. Necessário: ' . formatarMoeda($trocoNecessario) . '; disponível: ' . formatarMoeda($saldoTroco) . '. Informe outro valor ou escolha outra forma de pagamento.');
+                }
                 $codigo_acompanhamento = 'CF-' . strtoupper(substr(md5(uniqid((string)mt_rand(), true)), 0, 6));
                 $token_acesso = bin2hex(random_bytes(32));
 
-                $stmtPed = $pdo->prepare("INSERT INTO pedidos (codigo_acompanhamento, token_acesso, cliente_nome, cliente_telefone, tipo_entrega, forma_pagamento, taxa_entrega, troco_para, endereco, observacoes, valor_total, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendente')");
-                $stmtPed->execute([$codigo_acompanhamento, $token_acesso, $cliente_nome, $cliente_telefone, $tipo_entrega, $forma_pagamento, $taxaEntrega, $troco_para, $endereco, $observacoes, $valorTotalValidado]);
+                $stmtPed = $pdo->prepare("INSERT INTO pedidos (codigo_acompanhamento, token_acesso, cliente_id, cliente_nome, cliente_telefone, tipo_entrega, forma_pagamento, taxa_entrega, troco_para, troco_reservado, endereco, observacoes, valor_total, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendente')");
+                $stmtPed->execute([$codigo_acompanhamento, $token_acesso, $_SESSION['cliente_id'] ?? null, $cliente_nome, $cliente_telefone, $tipo_entrega, $forma_pagamento, $taxaEntrega, $troco_para, $trocoNecessario, $endereco, $observacoes, $valorTotalValidado]);
                 $pedido_id = $pdo->lastInsertId();
+
+                if ($caixaId && $trocoNecessario > 0) {
+                    $stmtReserva = $pdo->prepare("INSERT INTO caixa_movimentacoes (caixa_id, usuario_id, tipo, origem, valor, justificativa, pedido_id) SELECT ?, usuario_abertura_id, 'reserva_troco', 'Reserva de troco', ?, 'Troco reservado na confirmação do pedido', ? FROM caixas WHERE id = ?");
+                    $stmtReserva->execute([$caixaId, $trocoNecessario, $pedido_id, $caixaId]);
+                }
 
                 $stmtItem = $pdo->prepare("INSERT INTO pedido_itens (pedido_id, tamanho_id, borda_id, massa_id, divisao, sabor1_id, sabor2_id, preco_item) VALUES (?, ?, ?, ?, 'inteira', NULL, NULL, ?)");
                 $stmtItem->execute([$pedido_id, $tamanho_id, $borda_id, $massa_id, $subtotalPizza]);
@@ -99,6 +116,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cliente_nome'])) {
                 $_SESSION['ultimo_pedido_codigo'] = $codigo_acompanhamento;
                 $_SESSION['ultimo_pedido_token'] = $token_acesso;
                 header('Location: pedido.php?codigo=' . urlencode($codigo_acompanhamento)); exit;
+            } catch (DomainException $e) {
+                if ($pdo->inTransaction()) $pdo->rollBack();
+                $erro = $e->getMessage();
             } catch (Exception $e) {
                 if ($pdo->inTransaction()) $pdo->rollBack();
                 error_log('Erro ao finalizar pedido no Cria Fatia: ' . $e->getMessage());
@@ -151,11 +171,11 @@ require_once __DIR__ . '/../includes/header.php';
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Seu Nome Completo *</label>
-                            <input type="text" name="cliente_nome" class="form-control form-control-lg" required placeholder="Ex: Carlos Eduardo Silva" value="<?php echo htmlspecialchars($_POST['cliente_nome'] ?? ''); ?>">
+                            <input type="text" name="cliente_nome" class="form-control form-control-lg" required placeholder="Ex: Carlos Eduardo Silva" value="<?php echo htmlspecialchars($_POST['cliente_nome'] ?? $_SESSION['cliente_nome'] ?? ''); ?>">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Telefone / WhatsApp *</label>
-                            <input type="text" name="cliente_telefone" class="form-control form-control-lg" required placeholder="Ex: (11) 98765-4321" value="<?php echo htmlspecialchars($_POST['cliente_telefone'] ?? ''); ?>">
+                            <input type="text" name="cliente_telefone" class="form-control form-control-lg" required placeholder="Ex: (11) 98765-4321" value="<?php echo htmlspecialchars($_POST['cliente_telefone'] ?? $_SESSION['cliente_telefone'] ?? ''); ?>">
                         </div>
                     </div>
 

@@ -131,6 +131,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     $pedido['valor_total'],
                                     "Venda do Pedido #{$pedidoId} - Cliente: {$pedido['cliente_nome']}"
                                 ]);
+                                if ((float)($pedido['troco_reservado'] ?? 0) > 0) {
+                                    $stmtLibera = $pdo->prepare("INSERT IGNORE INTO caixa_movimentacoes (caixa_id, pedido_id, usuario_id, tipo, origem, valor, justificativa) VALUES (?, ?, ?, 'liberacao_troco', 'Liberação de troco', ?, 'Reserva consumida na entrega')");
+                                    $stmtLibera->execute([$caixaAberto['id'], $pedidoId, $_SESSION['usuario_id'] ?? 1, $pedido['troco_reservado']]);
+                                }
                             }
                         } catch (Exception $e) {
                             // Silenciar erro de caixa para não bloquear fluxo

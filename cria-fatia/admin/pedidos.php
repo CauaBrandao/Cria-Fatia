@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pedido_id'], $_POST['
     } else {
         $pedidoId = (int)$_POST['pedido_id'];
         $novoStatus = sanitizeInput($_POST['novo_status']);
-        $statusPermitidos = ['pendente', 'em_producao', 'pronto', 'entregue', 'finalizado', 'cancelado'];
+        $statusPermitidos = ['pendente', 'em_producao', 'pronto', 'entregue', 'finalizado'];
 
         if (in_array($novoStatus, $statusPermitidos)) {
             $stmtOld = $pdo->prepare("SELECT status FROM pedidos WHERE id = ?");
@@ -42,16 +42,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancelar_pedido'])) {
         $erro = 'Ação inválida (CSRF).';
     } else {
         $idCancel = (int)$_POST['cancelar_pedido'];
+        $motivo = trim($_POST['motivo_cancelamento'] ?? '');
+        if (mb_strlen($motivo) < 5) {
+            $erro = 'Informe um motivo de cancelamento com pelo menos 5 caracteres.';
+        } else {
         $stmtOld = $pdo->prepare("SELECT status FROM pedidos WHERE id = ?");
         $stmtOld->execute([$idCancel]);
         $statusAnterior = $stmtOld->fetchColumn();
-        $stmt = $pdo->prepare("UPDATE pedidos SET status = 'cancelado' WHERE id = ? AND status NOT IN ('cancelado', 'entregue')");
+        $stmt = $pdo->prepare("UPDATE pedidos SET status = 'cancelado' WHERE id = ? AND status <> 'cancelado'");
         $stmt->execute([$idCancel]);
         if ($stmt->rowCount() > 0) {
-            registrarStatusPedido($pdo, $idCancel, $statusAnterior, 'cancelado', 'Pedido cancelado pelo administrador.');
+            $stmtCancel = $pdo->prepare('INSERT INTO cancelamentos_pedidos (pedido_id, usuario_id, status_original, motivo) VALUES (?, ?, ?, ?)');
+            $stmtCancel->execute([$idCancel, $_SESSION['usuario_id'], $statusAnterior, $motivo]);
+            registrarStatusPedido($pdo, $idCancel, $statusAnterior, 'cancelado', 'Cancelado pelo administrador. Motivo: ' . $motivo);
+            registrarAuditoria($pdo, 'CANCELAR_PEDIDO', 'pedidos', $idCancel, $statusAnterior, 'cancelado', $motivo);
+            $stmtLibera = $pdo->prepare("INSERT IGNORE INTO caixa_movimentacoes (caixa_id, pedido_id, usuario_id, tipo, origem, valor, justificativa) SELECT caixa_id, pedido_id, ?, 'liberacao_troco', 'Liberação de troco', valor, 'Pedido cancelado; sem estorno automático' FROM caixa_movimentacoes WHERE pedido_id = ? AND tipo = 'reserva_troco'");
+            $stmtLibera->execute([$_SESSION['usuario_id'], $idCancel]);
             $msg = "Pedido #{$idCancel} cancelado.";
         } else {
             $erro = 'O pedido não existe ou não pode mais ser cancelado.';
+        }
         }
     }
 }
@@ -123,14 +133,13 @@ $token = gerarCsrfToken();
                                     <option value="pronto" <?php echo $p['status'] === 'pronto' ? 'selected' : ''; ?>>Pronto</option>
                                     <option value="entregue" <?php echo $p['status'] === 'entregue' ? 'selected' : ''; ?>>Entregue</option>
                                     <option value="finalizado" <?php echo $p['status'] === 'finalizado' ? 'selected' : ''; ?>>Finalizado</option>
-                                    <option value="cancelado" <?php echo $p['status'] === 'cancelado' ? 'selected' : ''; ?>>Cancelado</option>
                                 </select>
                                 <button type="submit" class="btn btn-sm btn-warning fw-bold text-dark" title="Salvar Status"><i class="bi bi-check-lg"></i></button>
                             </form>
                             <a href="<?php echo BASE_URL; ?>atendimento/imprimir.php?id=<?php echo $p['id']; ?>" class="btn btn-sm btn-outline-dark" target="_blank" title="Imprimir Cupom"><i class="bi bi-printer"></i></a>
                             <a href="<?php echo BASE_URL; ?>cliente/pedido.php?codigo=<?php echo urlencode($p['codigo_acompanhamento']); ?>" class="btn btn-sm btn-outline-secondary" target="_blank" title="Ver no Site"><i class="bi bi-eye"></i></a>
-                            <?php if ($p['status'] !== 'cancelado' && $p['status'] !== 'finalizado'): ?>
-                                <form method="POST" action="pedidos.php" class="d-inline" onsubmit="return confirm('Deseja cancelar este pedido?');"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($token); ?>"><button type="submit" name="cancelar_pedido" value="<?php echo (int)$p['id']; ?>" class="btn btn-sm btn-outline-danger" title="Cancelar Pedido"><i class="bi bi-x-circle"></i></button></form>
+                            <?php if ($p['status'] !== 'cancelado'): ?>
+                                <form method="POST" action="pedidos.php" class="d-flex gap-1" onsubmit="return confirm('Confirma o cancelamento? O pagamento não será estornado automaticamente.');"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($token); ?>"><input type="text" name="motivo_cancelamento" class="form-control form-control-sm" style="width:150px" minlength="5" required placeholder="Motivo obrigatório"><button type="submit" name="cancelar_pedido" value="<?php echo (int)$p['id']; ?>" class="btn btn-sm btn-outline-danger" title="Cancelar sem estorno automático"><i class="bi bi-x-circle"></i></button></form>
                             <?php endif; ?>
                         </div>
                     </td>

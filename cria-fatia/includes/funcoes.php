@@ -71,3 +71,9 @@ function registrarStatusPedido($pdo, $pedido_id, $status_anterior, $novo_status,
         // Silenciar
     }
 }
+
+function saldoDisponivelTroco(PDO $pdo, int $caixaId): float {
+    $stmt = $pdo->prepare("SELECT COALESCE(SUM(CASE WHEN cm.tipo IN ('entrada','liberacao_troco') THEN cm.valor WHEN cm.tipo = 'venda' AND p.forma_pagamento = 'dinheiro' THEN cm.valor WHEN cm.tipo IN ('saida','reserva_troco') THEN -cm.valor ELSE 0 END), 0) FROM caixa_movimentacoes cm LEFT JOIN pedidos p ON p.id = cm.pedido_id WHERE cm.caixa_id = ?");
+    $stmt->execute([$caixaId]);
+    return (float)$stmt->fetchColumn();
+}
