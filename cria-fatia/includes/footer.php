@@ -49,7 +49,7 @@
             </div>
             <div class="col-md-6 text-center text-md-end mt-2 mt-md-0">
                 <small class="text-white-50">
-                    <i class="bi bi-mortarboard me-1 text-warning"></i> Projeto Integrador Senac &bull; CST Sistemas para Internet
+                    <i class="bi bi-mortarboard me-1 text-warning"></i> Projeto Integrador Senac &bull; TSI – Tecnologia em Sistemas para Internet
                 </small>
             </div>
         </div>

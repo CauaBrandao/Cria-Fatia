@@ -18,6 +18,37 @@ $ingredientes = $pdo->query("SELECT * FROM ingredientes WHERE disponivel = 1 AND
 $acompanhamentos = $pdo->query("SELECT * FROM ingredientes WHERE disponivel = 1 AND tipo_item = 'acompanhamento' ORDER BY nome ASC")->fetchAll();
 $molhos = $pdo->query("SELECT * FROM molhos WHERE disponivel = 1 ORDER BY nome ASC")->fetchAll();
 $token = gerarCsrfToken();
+
+// Pré-seleção: sabor escolhido no cardápio (?sabor=ID) ou pizza que o cliente estava ajustando ("Voltar e Ajustar")
+$saborEscolhido = null;
+$anterior = $_SESSION['dados_pedido'] ?? [];
+$selTamanho = (int)($anterior['tamanho_id'] ?? 0);
+$selMassa = (int)($anterior['massa_id'] ?? 0);
+$selBorda = (int)($anterior['borda_id'] ?? 0);
+$selIngredientes = array_map('intval', (array)($anterior['ingredientes'] ?? []));
+$selMolhos = array_map('intval', (array)($anterior['molhos'] ?? []));
+
+if (isset($_GET['sabor'])) {
+    $stmt = $pdo->prepare("SELECT * FROM sabores WHERE id = ?");
+    $stmt->execute([(int)$_GET['sabor']]);
+    $saborEscolhido = $stmt->fetch() ?: null;
+    if ($saborEscolhido) {
+        $selIngredientes = ingredientesDoSabor($pdo, $saborEscolhido, $ingredientes);
+        $selMolhos = [];
+    }
+}
+$selIngredientes = array_slice($selIngredientes, 0, 8);
+
+// Sem escolha anterior: começa pela opção mais barata (bate com o "a partir de" do cardápio)
+$idsDe = fn($lista) => array_map(fn($x) => (int)$x['id'], $lista);
+$maisBarato = function ($lista, $campo) {
+    if (!$lista) return 0;
+    usort($lista, fn($a, $b) => [(float)$a[$campo], (int)$a['id']] <=> [(float)$b[$campo], (int)$b['id']]);
+    return (int)$lista[0]['id'];
+};
+if (!in_array($selTamanho, $idsDe($tamanhos), true)) $selTamanho = $maisBarato($tamanhos, 'preco_base');
+if (!in_array($selMassa, $idsDe($massas), true)) $selMassa = $maisBarato($massas, 'preco_adicional');
+if (!in_array($selBorda, $idsDe($bordas), true)) $selBorda = $maisBarato($bordas, 'preco');
 ?>
 
 <div class="row mb-4 align-items-center">
@@ -28,6 +59,13 @@ $token = gerarCsrfToken();
     </div>
 </div>
 
+<?php if ($saborEscolhido): ?>
+<div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4" role="status">
+    <div><i class="bi bi-check2-circle me-1"></i> Você escolheu <strong><?php echo htmlspecialchars($saborEscolhido['nome']); ?></strong>. Os ingredientes já estão marcados — escolha o tamanho e ajuste o que quiser.</div>
+    <a href="montar.php" class="btn btn-sm btn-outline-dark">Começar do zero</a>
+</div>
+<?php endif; ?>
+
 <form action="finalizar.php" method="POST" id="formMontador">
     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($token); ?>">
     <div class="row g-4">
@@ -36,24 +74,24 @@ $token = gerarCsrfToken();
                 <div class="card-header bg-white p-4"><h4 class="mb-1 fw-bold">01. Escolha o tamanho</h4><small class="text-muted">O preço base da pizza varia conforme o tamanho.</small></div>
                 <div class="card-body p-4"><div class="row g-3">
                     <?php foreach($tamanhos as $index => $t): ?>
-                    <div class="col-md-4"><div class="selector-card h-100 p-3 rounded-3 border bg-white text-center cursor-pointer <?php echo $index === 0 ? 'border-warning shadow-sm bg-warning bg-opacity-10 selected' : ''; ?>" onclick="selecionarTamanho(this, <?php echo (int)$t['id']; ?>)">
+                    <div class="col-md-4"><div class="selector-card h-100 p-3 rounded-3 border bg-white text-center cursor-pointer <?php echo (int)$t['id'] === $selTamanho ? 'border-warning shadow-sm bg-warning bg-opacity-10 selected' : ''; ?>" onclick="selecionarTamanho(this, <?php echo (int)$t['id']; ?>)">
                         <div class="fw-bold fs-5"><?php echo htmlspecialchars($t['nome']); ?></div><div class="badge bg-warning text-dark mt-2">R$ <?php echo number_format($t['preco_base'],2,',','.'); ?></div>
                     </div></div><?php endforeach; ?>
-                </div><select class="form-select d-none" name="tamanho_id" id="tamanho_id" required><?php foreach($tamanhos as $i=>$t): ?><option value="<?php echo (int)$t['id']; ?>" data-preco="<?php echo (float)$t['preco_base']; ?>" <?php echo $i===0?'selected':''; ?>><?php echo htmlspecialchars($t['nome']); ?></option><?php endforeach; ?></select></div>
+                </div><select class="form-select d-none" name="tamanho_id" id="tamanho_id" required><?php foreach($tamanhos as $i=>$t): ?><option value="<?php echo (int)$t['id']; ?>" data-preco="<?php echo (float)$t['preco_base']; ?>" <?php echo (int)$t['id'] === $selTamanho ? 'selected' : ''; ?>><?php echo htmlspecialchars($t['nome']); ?></option><?php endforeach; ?></select></div>
             </div>
 
             <div class="card mb-4 border-0 shadow-sm rounded-4">
                 <div class="card-header bg-white p-4"><h4 class="mb-1 fw-bold">02. Escolha o tipo de massa</h4><small class="text-muted">Selecione a massa da sua pizza.</small></div>
                 <div class="card-body p-4"><div class="row g-3">
                     <?php foreach ($massas as $i => $massa): ?>
-                    <div class="col-md-6"><div class="selector-card h-100 p-3 rounded-3 border bg-white cursor-pointer <?php echo $i === 0 ? 'selected border-warning bg-warning bg-opacity-10' : ''; ?>" onclick="selecionarMassa(this, <?php echo (int)$massa['id']; ?>)">
+                    <div class="col-md-6"><div class="selector-card h-100 p-3 rounded-3 border bg-white cursor-pointer <?php echo (int)$massa['id'] === $selMassa ? 'selected border-warning bg-warning bg-opacity-10' : ''; ?>" onclick="selecionarMassa(this, <?php echo (int)$massa['id']; ?>)">
                         <div class="fw-bold"><?php echo htmlspecialchars($massa['nome']); ?></div>
                         <?php if (!empty($massa['descricao'])): ?><small class="text-muted"><?php echo htmlspecialchars($massa['descricao']); ?></small><?php endif; ?>
                         <div class="text-success small fw-bold mt-1"><?php echo (float)$massa['preco_adicional'] > 0 ? '+ R$ '.number_format($massa['preco_adicional'],2,',','.') : 'Sem adicional'; ?></div>
                     </div></div>
                     <?php endforeach; ?>
                 </div><select class="form-select d-none" name="massa_id" id="massa_id" required>
-                    <?php foreach ($massas as $i => $massa): ?><option value="<?php echo (int)$massa['id']; ?>" data-preco="<?php echo (float)$massa['preco_adicional']; ?>" <?php echo $i===0?'selected':''; ?>><?php echo htmlspecialchars($massa['nome']); ?></option><?php endforeach; ?>
+                    <?php foreach ($massas as $i => $massa): ?><option value="<?php echo (int)$massa['id']; ?>" data-preco="<?php echo (float)$massa['preco_adicional']; ?>" <?php echo (int)$massa['id'] === $selMassa ? 'selected' : ''; ?>><?php echo htmlspecialchars($massa['nome']); ?></option><?php endforeach; ?>
                 </select></div>
             </div>
 
@@ -63,7 +101,7 @@ $token = gerarCsrfToken();
                     <div class="row g-3">
                     <?php foreach($ingredientes as $ing): ?>
                         <div class="col-md-6"><label class="ingredient-option d-flex align-items-center justify-content-between gap-2 p-3 border rounded-3 h-100 cursor-pointer" for="ingrediente_<?php echo (int)$ing['id']; ?>">
-                            <span class="form-check d-flex align-items-center gap-2 mb-0"><input class="form-check-input ingrediente-checkbox mt-0" type="checkbox" name="ingredientes[]" value="<?php echo (int)$ing['id']; ?>" data-preco="<?php echo (float)$ing['preco_adicional']; ?>" id="ingrediente_<?php echo (int)$ing['id']; ?>"><span class="fw-semibold text-dark"><?php echo htmlspecialchars($ing['nome']); ?></span></span>
+                            <span class="form-check d-flex align-items-center gap-2 mb-0"><input class="form-check-input ingrediente-checkbox mt-0" type="checkbox" name="ingredientes[]" value="<?php echo (int)$ing['id']; ?>" data-preco="<?php echo (float)$ing['preco_adicional']; ?>" id="ingrediente_<?php echo (int)$ing['id']; ?>"<?php echo in_array((int)$ing['id'], $selIngredientes, true) ? ' checked' : ''; ?>><span class="fw-semibold text-dark"><?php echo htmlspecialchars($ing['nome']); ?></span></span>
                             <span class="text-success small fw-bold">+ R$ <?php echo number_format($ing['preco_adicional'],2,',','.'); ?></span>
                         </label></div>
                     <?php endforeach; ?>
@@ -73,16 +111,16 @@ $token = gerarCsrfToken();
             </div>
 
             <div class="card mb-4 border-0 shadow-sm rounded-4"><div class="card-header bg-white p-4"><h4 class="mb-1 fw-bold">04. Acompanhamentos</h4><small class="text-muted">Opcionais, fora do limite de 8 ingredientes. Máximo de 4.</small></div><div class="card-body p-4"><div class="row g-3">
-                <?php foreach($acompanhamentos as $ing): ?><div class="col-md-6"><label class="ingredient-option d-flex align-items-center justify-content-between gap-2 p-3 border rounded-3 h-100" for="acompanhamento_<?php echo (int)$ing['id']; ?>"><span class="form-check mb-0"><input class="form-check-input acompanhamento-checkbox" type="checkbox" name="ingredientes[]" value="<?php echo (int)$ing['id']; ?>" data-preco="<?php echo (float)$ing['preco_adicional']; ?>" id="acompanhamento_<?php echo (int)$ing['id']; ?>"> <span class="fw-semibold"><?php echo htmlspecialchars($ing['nome']); ?></span></span><span class="text-success small fw-bold">+ R$ <?php echo number_format($ing['preco_adicional'],2,',','.'); ?></span></label></div><?php endforeach; ?>
+                <?php foreach($acompanhamentos as $ing): ?><div class="col-md-6"><label class="ingredient-option d-flex align-items-center justify-content-between gap-2 p-3 border rounded-3 h-100" for="acompanhamento_<?php echo (int)$ing['id']; ?>"><span class="form-check mb-0"><input class="form-check-input acompanhamento-checkbox" type="checkbox" name="ingredientes[]" value="<?php echo (int)$ing['id']; ?>" data-preco="<?php echo (float)$ing['preco_adicional']; ?>" id="acompanhamento_<?php echo (int)$ing['id']; ?>"<?php echo in_array((int)$ing['id'], $selIngredientes, true) ? ' checked' : ''; ?>> <span class="fw-semibold"><?php echo htmlspecialchars($ing['nome']); ?></span></span><span class="text-success small fw-bold">+ R$ <?php echo number_format($ing['preco_adicional'],2,',','.'); ?></span></label></div><?php endforeach; ?>
                 <?php if (!$acompanhamentos): ?><p class="text-muted mb-0">Nenhum acompanhamento disponível.</p><?php endif; ?>
             </div></div></div>
 
             <div class="card mb-4 border-0 shadow-sm rounded-4"><div class="card-header bg-white p-4"><h4 class="mb-1 fw-bold">05. Borda recheada</h4><small class="text-muted">Escolha uma opção para finalizar.</small></div><div class="card-body p-4"><div class="row g-3">
-                <?php foreach($bordas as $i=>$b): ?><div class="col-md-6"><div class="selector-card h-100 p-3 rounded-3 border bg-white cursor-pointer <?php echo $i===0?'selected border-warning bg-warning bg-opacity-10':''; ?>" onclick="selecionarBorda(this,<?php echo (int)$b['id']; ?>)"><div class="fw-bold"><?php echo htmlspecialchars($b['nome']); ?></div><small class="text-success">+ R$ <?php echo number_format($b['preco'],2,',','.'); ?></small></div></div><?php endforeach; ?>
-            </div><select class="form-select d-none" name="borda_id" id="borda_id" required><?php foreach($bordas as $i=>$b): ?><option value="<?php echo (int)$b['id']; ?>" data-preco="<?php echo (float)$b['preco']; ?>" <?php echo $i===0?'selected':''; ?>><?php echo htmlspecialchars($b['nome']); ?></option><?php endforeach; ?></select></div></div>
+                <?php foreach($bordas as $i=>$b): ?><div class="col-md-6"><div class="selector-card h-100 p-3 rounded-3 border bg-white cursor-pointer <?php echo (int)$b['id'] === $selBorda ? 'selected border-warning bg-warning bg-opacity-10' : ''; ?>" onclick="selecionarBorda(this,<?php echo (int)$b['id']; ?>)"><div class="fw-bold"><?php echo htmlspecialchars($b['nome']); ?></div><small class="text-success">+ R$ <?php echo number_format($b['preco'],2,',','.'); ?></small></div></div><?php endforeach; ?>
+            </div><select class="form-select d-none" name="borda_id" id="borda_id" required><?php foreach($bordas as $i=>$b): ?><option value="<?php echo (int)$b['id']; ?>" data-preco="<?php echo (float)$b['preco']; ?>" <?php echo (int)$b['id'] === $selBorda ? 'selected' : ''; ?>><?php echo htmlspecialchars($b['nome']); ?></option><?php endforeach; ?></select></div></div>
 
-            <div class="card mb-4 border-0 shadow-sm rounded-4"><div class="card-header bg-white p-4"><h4 class="mb-1 fw-bold">05. Molhos adicionais</h4><small class="text-muted">Opcional — escolha um ou mais.</small></div><div class="card-body p-4"><div class="row g-3">
-                <?php foreach($molhos as $molho): ?><div class="col-md-6"><label class="d-flex align-items-center justify-content-between gap-2 p-3 border rounded-3 h-100" for="molho_<?php echo (int)$molho['id']; ?>"><span class="form-check mb-0"><input class="form-check-input molho-checkbox" type="checkbox" name="molhos[]" value="<?php echo (int)$molho['id']; ?>" data-preco="<?php echo (float)$molho['preco_adicional']; ?>" id="molho_<?php echo (int)$molho['id']; ?>"><span class="form-check-label fw-semibold ms-1"><?php echo htmlspecialchars($molho['nome']); ?></span></span><span class="text-success small fw-bold">+ R$ <?php echo number_format($molho['preco_adicional'],2,',','.'); ?></span></label></div><?php endforeach; ?>
+            <div class="card mb-4 border-0 shadow-sm rounded-4"><div class="card-header bg-white p-4"><h4 class="mb-1 fw-bold">06. Molhos adicionais</h4><small class="text-muted">Opcional — escolha um ou mais.</small></div><div class="card-body p-4"><div class="row g-3">
+                <?php foreach($molhos as $molho): ?><div class="col-md-6"><label class="d-flex align-items-center justify-content-between gap-2 p-3 border rounded-3 h-100" for="molho_<?php echo (int)$molho['id']; ?>"><span class="form-check mb-0"><input class="form-check-input molho-checkbox" type="checkbox" name="molhos[]" value="<?php echo (int)$molho['id']; ?>" data-preco="<?php echo (float)$molho['preco_adicional']; ?>" id="molho_<?php echo (int)$molho['id']; ?>"<?php echo in_array((int)$molho['id'], $selMolhos, true) ? ' checked' : ''; ?>><span class="form-check-label fw-semibold ms-1"><?php echo htmlspecialchars($molho['nome']); ?></span></span><span class="text-success small fw-bold">+ R$ <?php echo number_format($molho['preco_adicional'],2,',','.'); ?></span></label></div><?php endforeach; ?>
             </div></div></div>
         </div>
         <div class="col-lg-5"><div class="card border-0 shadow-lg rounded-4 position-sticky" style="top:2rem;background:#181A20;color:#fff"><div class="card-header bg-warning text-dark fw-bold text-center py-3">Resumo da sua pizza</div><div class="card-body p-4">

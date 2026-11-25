@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/conexao.php';
 require_once __DIR__ . '/../includes/funcoes.php';
+require_once __DIR__ . '/../includes/pix_demo.php';
 
 $erro = '';
 $taxaEntregaPadrao = 5.00;
@@ -200,7 +201,7 @@ require_once __DIR__ . '/../includes/header.php';
                                 <input type="radio" name="forma_pagamento" id="pag_pix" value="pix" class="form-check-input mt-0" checked onchange="atualizarFormaPagamento('pix')">
                                 <div>
                                     <div class="fw-bold text-dark"><i class="bi bi-qr-code text-success me-1"></i> Pix</div>
-                                    <small class="text-muted">Aprovação Imediata</small>
+                                    <small class="text-muted">QR Code ou Copia e Cola</small>
                                 </div>
                             </label>
                         </div>
@@ -226,10 +227,8 @@ require_once __DIR__ . '/../includes/header.php';
 
                     <div id="painel_pix" class="mb-4 p-4 rounded-4 border border-success bg-light">
                         <h6 class="fw-bold text-success mb-3"><i class="bi bi-qr-code-scan me-2"></i>Pagamento via Pix</h6>
-                        <div class="alert alert-warning mb-0" role="status">
-                            <i class="bi bi-exclamation-triangle me-1"></i>
-                            O Pix não é processado nem confirmado por este sistema. Antes de pagar, confirme a chave e o valor diretamente com a equipe da pizzaria. Não use QR Codes ou chaves recebidos fora dessa confirmação.
-                        </div>
+                        <?php renderizarPixDemo($subtotalPizza + $taxaEntregaPadrao, '***', 'data-pix-tipo="entrega"'); ?>
+                        <?php renderizarPixDemo($subtotalPizza, '***', 'data-pix-tipo="retirada" style="display:none"'); ?>
                     </div>
 
                     <!-- Painel Cartão: instruções de maquininha -->
@@ -318,6 +317,9 @@ function atualizarTipoEntrega(val) {
     const displayTaxa = document.getElementById('taxa_entrega_display');
     const displayTotal = document.getElementById('total_final_display');
 
+    document.querySelectorAll('[data-pix-tipo]').forEach(el => {
+        el.style.display = el.dataset.pixTipo === val ? '' : 'none';
+    });
     if (val === 'retirada') {
         grp.style.display = 'none';
         labelTaxa.textContent = 'Retirada no Balcão:';
@@ -362,4 +364,5 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+<?php scriptCopiarPixDemo(); ?>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

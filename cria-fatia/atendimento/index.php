@@ -161,287 +161,157 @@ $pedidos = $pdo->query("
 $token = gerarCsrfToken();
 ?>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-bold">
+<?php
+$contagem = ['todos' => count($pedidos), 'pendente' => 0, 'em_producao' => 0, 'pronto' => 0, 'entregue' => 0, 'cancelado' => 0];
+foreach ($pedidos as $p) {
+    $chave = $p['status'] === 'finalizado' ? 'entregue' : $p['status'];
+    if (isset($contagem[$chave])) $contagem[$chave]++;
+}
+$coresStatus = [
+    'pendente'    => 'bg-warning text-dark',
+    'em_producao' => 'bg-info text-dark',
+    'pronto'      => 'bg-primary',
+    'entregue'    => 'bg-success',
+    'finalizado'  => 'bg-success',
+    'cancelado'   => 'bg-danger',
+];
+$nomesPagamento = ['pix' => 'Pix', 'cartao' => 'Cartão', 'dinheiro' => 'Dinheiro'];
+?>
+
+<div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold mb-0">
         <i class="bi bi-headset me-2 text-warning"></i>
         Painel do Atendimento
     </h2>
-
-    <div class="d-flex align-items-center gap-2">
-        <span class="badge bg-light text-dark border"><i class="bi bi-arrow-repeat me-1"></i> Auto-atualização: <span id="refreshTimer">25s</span></span>
-        <a href="<?php echo BASE_URL; ?>atendimento/index.php"
-           class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-arrow-clockwise"></i>
-            Atualizar Lista
-        </a>
-    </div>
+    <a href="<?php echo BASE_URL; ?>atendimento/index.php" class="btn btn-outline-dark btn-sm" title="Atualizar agora">
+        <i class="bi bi-arrow-clockwise me-1"></i> Atualiza em <span id="refreshTimer">25s</span>
+    </a>
 </div>
 
 <?php if ($msg): ?>
     <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-check-circle me-2"></i>
-        <?php echo htmlspecialchars($msg); ?>
-
+        <i class="bi bi-check-circle me-2"></i><?php echo htmlspecialchars($msg); ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>
 
 <?php if ($erro): ?>
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="bi bi-exclamation-triangle me-2"></i>
-        <?php echo htmlspecialchars($erro); ?>
-
+        <i class="bi bi-exclamation-triangle me-2"></i><?php echo htmlspecialchars($erro); ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>
 
-<div class="card border-0 shadow-sm p-3 mb-3 bg-white rounded-3">
+<div class="card border-0 shadow-sm p-3 mb-3">
     <div class="row g-2 align-items-center">
-        <div class="col-md-5">
+        <div class="col-lg-4">
             <div class="input-group">
-                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
-                <input type="text" id="filtroTexto" class="form-control border-start-0" placeholder="Buscar por cliente, telefone ou ID..." onkeyup="filtrarTabela()">
+                <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" id="filtroTexto" class="form-control" placeholder="Buscar cliente, telefone, nº ou código" oninput="filtrarTabela()">
             </div>
         </div>
-        <div class="col-md-7 d-flex flex-wrap gap-1 justify-content-md-end">
-            <button type="button" class="btn btn-sm btn-dark btn-filtro active" onclick="filtrarStatus('todos', this)">Todos</button>
-            <button type="button" class="btn btn-sm btn-outline-warning text-dark btn-filtro" onclick="filtrarStatus('pendente', this)"><i class="bi bi-clock me-1"></i>Pendentes</button>
-            <button type="button" class="btn btn-sm btn-outline-info text-dark btn-filtro" onclick="filtrarStatus('em_producao', this)"><i class="bi bi-fire me-1"></i>Em Produção</button>
-            <button type="button" class="btn btn-sm btn-outline-primary btn-filtro" onclick="filtrarStatus('pronto', this)"><i class="bi bi-check me-1"></i>Prontos</button>
-            <button type="button" class="btn btn-sm btn-outline-success btn-filtro" onclick="filtrarStatus('entregue', this)"><i class="bi bi-check-all me-1"></i>Entregues</button>
+        <div class="col-lg-8 d-flex flex-wrap gap-1 justify-content-lg-end">
+            <?php
+            $filtros = ['todos' => 'Todos', 'pendente' => 'Pendentes', 'em_producao' => 'Em produção', 'pronto' => 'Prontos', 'entregue' => 'Entregues', 'cancelado' => 'Cancelados'];
+            foreach ($filtros as $valor => $rotulo): ?>
+                <button type="button" class="btn btn-sm btn-filtro <?php echo $valor === 'todos' ? 'btn-dark' : 'btn-outline-dark'; ?>" onclick="filtrarStatus('<?php echo $valor; ?>', this)">
+                    <?php echo $rotulo; ?> <span class="badge bg-secondary ms-1"><?php echo $contagem[$valor]; ?></span>
+                </button>
+            <?php endforeach; ?>
         </div>
     </div>
 </div>
 
-<div class="table-responsive bg-white rounded shadow-sm p-3 border">
-
+<div class="card border-0 shadow-sm p-0">
+<div class="table-responsive">
     <table class="table table-hover align-middle mb-0" id="tabelaPedidos">
-
         <thead class="table-dark">
             <tr>
-                <th>#ID</th>
+                <th>Pedido</th>
                 <th>Cliente</th>
-                <th>Telefone</th>
-                <th>Tipo</th>
-                <th>Pagamento</th>
+                <th>Entrega / Pagamento</th>
                 <th>Total</th>
                 <th>Status</th>
-                <th>Ações</th>
+                <th class="text-end">Ações</th>
             </tr>
         </thead>
-
         <tbody>
-
         <?php if (empty($pedidos)): ?>
-
             <tr>
-                <td colspan="7" class="text-center py-4 text-muted">
-                    Nenhum pedido cadastrado no momento.
-                </td>
+                <td colspan="6" class="text-center py-4 text-muted">Nenhum pedido cadastrado no momento.</td>
             </tr>
-
         <?php else: ?>
-
-            <?php foreach ($pedidos as $p): ?>
-
-                <?php
-                    $cores = [
-                        'pendente' => 'warning text-dark',
-                        'em_producao' => 'info text-white',
-                        'pronto' => 'primary',
-                        'entregue' => 'success',
-                        'finalizado' => 'success',
-                        'cancelado' => 'danger'
-                    ];
-
-                    $corStatus = $cores[$p['status']] ?? 'secondary';
-                ?>
-
-                <tr class="pedido-linha" data-status="<?php echo htmlspecialchars($p['status']); ?>" data-search="<?php echo strtolower(htmlspecialchars($p['id'] . ' ' . $p['cliente_nome'] . ' ' . $p['cliente_telefone'] . ' ' . $p['codigo_acompanhamento'])); ?>">
-
+            <?php foreach ($pedidos as $p):
+                $statusFiltro = $p['status'] === 'finalizado' ? 'entregue' : $p['status'];
+                $telLimpo = preg_replace('/\D/', '', (string)$p['cliente_telefone']);
+                $aberto = !in_array($p['status'], ['entregue', 'cancelado', 'finalizado'], true);
+                // Próximo passo do pedido (um botão por etapa, sem repetir o status)
+                $proximo = [
+                    'pendente'    => ['em_producao', 'Enviar p/ cozinha', 'bi-fire', 'btn-warning'],
+                    'em_producao' => ['pronto', 'Marcar pronto', 'bi-box-seam', 'btn-primary'],
+                ][$p['status']] ?? null;
+            ?>
+                <tr class="pedido-linha" data-status="<?php echo htmlspecialchars($statusFiltro); ?>" data-search="<?php echo htmlspecialchars(mb_strtolower($p['id'] . ' ' . $p['cliente_nome'] . ' ' . $p['cliente_telefone'] . ' ' . $p['codigo_acompanhamento'], 'UTF-8')); ?>">
                     <td>
-                        <strong>#<?php echo $p['id']; ?></strong>
+                        <strong>#<?php echo (int)$p['id']; ?></strong>
+                        <div class="small text-muted font-monospace"><?php echo htmlspecialchars($p['codigo_acompanhamento'] ?? ''); ?></div>
                     </td>
-
                     <td>
-                        <?php echo htmlspecialchars($p['cliente_nome']); ?>
+                        <div class="fw-semibold"><?php echo htmlspecialchars($p['cliente_nome']); ?></div>
+                        <div class="small text-muted">
+                            <?php echo htmlspecialchars($p['cliente_telefone']); ?>
+                            <?php if (strlen($telLimpo) >= 10):
+                                $linkWhats = "https://wa.me/55" . $telLimpo . "?text=" . urlencode("Olá " . $p['cliente_nome'] . "! Aqui é da Bella Roza Pizzaria, sobre o seu pedido #" . $p['id'] . " (" . $p['codigo_acompanhamento'] . "). Status atual: " . rotuloStatus($p['status']) . ".");
+                            ?>
+                                <a href="<?php echo htmlspecialchars($linkWhats); ?>" target="_blank" rel="noopener" class="text-success ms-1" title="Falar com o cliente no WhatsApp"><i class="bi bi-whatsapp"></i></a>
+                            <?php endif; ?>
+                        </div>
                     </td>
-
+                    <td class="small">
+                        <div><i class="bi <?php echo $p['tipo_entrega'] === 'retirada' ? 'bi-shop' : 'bi-bicycle'; ?> me-1"></i><?php echo $p['tipo_entrega'] === 'retirada' ? 'Retirada' : 'Entrega'; ?></div>
+                        <div class="text-muted"><i class="bi bi-wallet2 me-1"></i><?php echo $nomesPagamento[$p['forma_pagamento']] ?? 'Pix'; ?></div>
+                    </td>
+                    <td class="fw-bold text-success text-nowrap"><?php echo formatarMoeda($p['valor_total']); ?></td>
+                    <td><span class="badge <?php echo $coresStatus[$p['status']] ?? 'bg-secondary'; ?>"><?php echo rotuloStatus($p['status']); ?></span></td>
                     <td>
-                        <?php echo htmlspecialchars($p['cliente_telefone']); ?>
-                        <?php 
-                        $telLimpo = preg_replace('/\D/', '', $p['cliente_telefone']);
-                        if (strlen($telLimpo) >= 10): 
-                            $linkWhats = "https://wa.me/55" . $telLimpo . "?text=" . urlencode("Olá " . $p['cliente_nome'] . "! Aqui é da Bella Roza Pizzaria referente ao seu pedido #" . $p['id'] . " (" . $p['codigo_acompanhamento'] . "). Status atual: " . strtoupper($p['status']));
-                        ?>
-                            <a href="<?php echo $linkWhats; ?>" target="_blank" class="btn btn-sm btn-outline-success ms-1 py-0 px-1" title="Notificar via WhatsApp">
-                                <i class="bi bi-whatsapp"></i>
-                            </a>
-                        <?php endif; ?>
-                    </td>
-
-                    <td>
-                        <span class="badge bg-secondary">
-                            <?php echo ucfirst($p['tipo_entrega']); ?>
-                        </span>
-                    </td>
-
-                    <td>
-                        <span class="badge bg-light text-dark border">
-                            <i class="bi bi-credit-card me-1 text-primary"></i><?php echo strtoupper($p['forma_pagamento'] ?? 'PIX'); ?>
-                        </span>
-                    </td>
-
-                    <td class="fw-bold text-success">
-                        R$ <?php echo number_format($p['valor_total'], 2, ',', '.'); ?>
-                    </td>
-
-                    <td>
-                        <span class="badge bg-<?php echo $corStatus; ?>">
-                            <?php echo strtoupper($p['status']); ?>
-                        </span>
-                    </td>
-
-                    <td>
-
-                        <div class="d-flex align-items-center flex-wrap gap-2">
-
-                            <?php if (
-                                !in_array($p['status'], ['entregue', 'cancelado', 'finalizado'], true)
-                            ): ?>
-
-                                <!-- BOTÃO 1: ATUALIZAR STATUS -->
-
-                                <form action="index.php"
-                                      method="POST"
-                                      class="d-flex align-items-center gap-1">
-
-                                    <input type="hidden"
-                                           name="csrf_token"
-                                           value="<?php echo $token; ?>">
-
-                                    <input type="hidden"
-                                           name="pedido_id"
-                                           value="<?php echo $p['id']; ?>">
-
-                                    <input type="hidden"
-                                           name="acao"
-                                           value="atualizar_status">
-
-                                    <select name="novo_status"
-                                            class="form-select form-select-sm"
-                                            required>
-
-                                        <option value="pendente"
-                                            <?php echo $p['status'] === 'pendente' ? 'selected' : ''; ?>>
-                                            Pendente
-                                        </option>
-
-                                        <option value="em_producao"
-                                            <?php echo $p['status'] === 'em_producao' ? 'selected' : ''; ?>>
-                                            Em Produção
-                                        </option>
-
-                                        <option value="pronto"
-                                            <?php echo $p['status'] === 'pronto' ? 'selected' : ''; ?>>
-                                            Pronto
-                                        </option>
-
-                                        <option value="cancelado">
-                                            Cancelado
-                                        </option>
-
-                                    </select>
-
-                                    <button type="submit" class="btn btn-sm btn-warning fw-bold text-dark" title="Salvar novo status do pedido"> <i class="bi bi-check-lg"></i> </button>
-
+                        <div class="d-flex align-items-center justify-content-end flex-wrap gap-1">
+                            <?php if ($proximo): ?>
+                                <form action="index.php" method="POST">
+                                    <input type="hidden" name="csrf_token" value="<?php echo $token; ?>">
+                                    <input type="hidden" name="pedido_id" value="<?php echo (int)$p['id']; ?>">
+                                    <input type="hidden" name="acao" value="atualizar_status">
+                                    <input type="hidden" name="novo_status" value="<?php echo $proximo[0]; ?>">
+                                    <button type="submit" class="btn btn-sm <?php echo $proximo[3]; ?> fw-bold"><i class="bi <?php echo $proximo[2]; ?> me-1"></i><?php echo $proximo[1]; ?></button>
                                 </form>
-
-                                
-
-                                <!-- BOTÃO 2: CONFIRMAR RECEBIMENTO -->
-
-                                <?php if ($p['status'] === 'pronto'): ?>
-
-                                    <form action="index.php"
-                                          method="POST"
-                                          onsubmit="return confirm('Confirma que o cliente recebeu o pedido #<?php echo $p['id']; ?>? Após confirmar, o pedido será marcado como ENTREGUE.');">
-
-                                        <input type="hidden"
-                                               name="csrf_token"
-                                               value="<?php echo $token; ?>">
-
-                                        <input type="hidden"
-                                               name="pedido_id"
-                                               value="<?php echo $p['id']; ?>">
-
-                                        <input type="hidden"
-                                               name="acao"
-                                               value="confirmar_recebimento">
-
-                                        <button type="submit"
-                                                class="btn btn-sm btn-success fw-bold">
-
-                                            <i class="bi bi-check-circle-fill me-1"></i>
-                                            Confirmar Recebimento
-
-                                        </button>
-
-                                    </form>
-
-                                <?php endif; ?>
-
-                            <?php elseif ($p['status'] === 'entregue'): ?>
-
-                                <span class="badge bg-success p-2">
-                                    <i class="bi bi-check-circle-fill me-1"></i>
-                                    Recebimento Confirmado
-                                </span>
-
-                            <?php elseif ($p['status'] === 'cancelado'): ?>
-
-                                <span class="badge bg-danger p-2">
-                                    Pedido Cancelado
-                                </span>
-
-                            <?php else: ?>
-
-                                <span class="badge bg-success p-2">
-                                    Pedido Finalizado
-                                </span>
-
+                            <?php elseif ($p['status'] === 'pronto'): ?>
+                                <form action="index.php" method="POST" onsubmit="return confirm('Confirmar que o cliente recebeu o pedido #<?php echo (int)$p['id']; ?>?');">
+                                    <input type="hidden" name="csrf_token" value="<?php echo $token; ?>">
+                                    <input type="hidden" name="pedido_id" value="<?php echo (int)$p['id']; ?>">
+                                    <input type="hidden" name="acao" value="confirmar_recebimento">
+                                    <button type="submit" class="btn btn-sm btn-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>Confirmar entrega</button>
+                                </form>
                             <?php endif; ?>
 
-                            <!-- IMPRIMIR CUPOM / COMANDA -->
-                            <a href="<?php echo BASE_URL; ?>atendimento/imprimir.php?id=<?php echo $p['id']; ?>"
-                               class="btn btn-sm btn-outline-dark"
-                               target="_blank"
-                               title="Imprimir Comanda / Cupom">
-                                <i class="bi bi-printer"></i>
-                            </a>
+                            <?php if ($aberto): ?>
+                                <form action="index.php" method="POST" onsubmit="return confirm('Cancelar o pedido #<?php echo (int)$p['id']; ?>? Essa ação não pode ser desfeita.');">
+                                    <input type="hidden" name="csrf_token" value="<?php echo $token; ?>">
+                                    <input type="hidden" name="pedido_id" value="<?php echo (int)$p['id']; ?>">
+                                    <input type="hidden" name="acao" value="atualizar_status">
+                                    <input type="hidden" name="novo_status" value="cancelado">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancelar pedido"><i class="bi bi-x-lg"></i></button>
+                                </form>
+                            <?php endif; ?>
 
-                            <!-- VER DETALHES NO SITE -->
-                            <a href="<?php echo BASE_URL; ?>cliente/pedido.php?codigo=<?php echo urlencode($p['codigo_acompanhamento']); ?>"
-                               class="btn btn-sm btn-outline-secondary"
-                               target="_blank"
-                               title="Ver Página de Rastreamento">
-                                <i class="bi bi-eye"></i>
-                            </a>
-
+                            <a href="<?php echo BASE_URL; ?>atendimento/imprimir.php?id=<?php echo (int)$p['id']; ?>" class="btn btn-sm btn-outline-dark" target="_blank" title="Imprimir comanda"><i class="bi bi-printer"></i></a>
+                            <a href="<?php echo BASE_URL; ?>cliente/pedido.php?codigo=<?php echo urlencode($p['codigo_acompanhamento']); ?>" class="btn btn-sm btn-outline-secondary" target="_blank" title="Ver página do pedido"><i class="bi bi-eye"></i></a>
                         </div>
-
                     </td>
-
                 </tr>
-
             <?php endforeach; ?>
-
         <?php endif; ?>
-
         </tbody>
-
     </table>
-
+</div>
 </div>
 
 <script>
@@ -453,36 +323,30 @@ function filtrarStatus(status, btn) {
         b.classList.remove('btn-dark');
         b.classList.add('btn-outline-dark');
     });
-    btn.classList.remove('btn-outline-dark', 'btn-outline-warning', 'btn-outline-info', 'btn-outline-primary', 'btn-outline-success');
+    btn.classList.remove('btn-outline-dark');
     btn.classList.add('btn-dark');
     filtrarTabela();
 }
 
 function filtrarTabela() {
     const texto = (document.getElementById('filtroTexto')?.value || '').toLowerCase().trim();
-    const linhas = document.querySelectorAll('.pedido-linha');
-
-    linhas.forEach(linha => {
-        const status = linha.dataset.status;
-        const search = linha.dataset.search || '';
-
-        const matchStatus = (statusFiltroAtual === 'todos' || status === statusFiltroAtual);
-        const matchTexto = (texto === '' || search.includes(texto));
-
+    document.querySelectorAll('.pedido-linha').forEach(linha => {
+        const matchStatus = statusFiltroAtual === 'todos' || linha.dataset.status === statusFiltroAtual;
+        const matchTexto = texto === '' || (linha.dataset.search || '').includes(texto);
         linha.style.display = (matchStatus && matchTexto) ? '' : 'none';
     });
 }
 
+// Atualização automática (pausa enquanto alguém digita na busca)
 let tempoRestante = 25;
 const timerEl = document.getElementById('refreshTimer');
 setInterval(() => {
+    if (document.activeElement && document.activeElement.id === 'filtroTexto') return;
     tempoRestante--;
     if (timerEl) timerEl.textContent = tempoRestante + 's';
     if (tempoRestante <= 0) {
-        window.location.reload();
-    }
-}, 1000);
-</script>
+        // Recarrega via GET para não reenviar formulários
+        window.location.href = 'index.php';
     }
 }, 1000);
 </script>
