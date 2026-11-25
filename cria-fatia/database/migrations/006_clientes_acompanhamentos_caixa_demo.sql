@@ -15,10 +15,41 @@ ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS demo TINYINT(1) NOT NULL DEFAULT 0;
 ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS troco_reservado DECIMAL(10,2) NOT NULL DEFAULT 0.00;
 ALTER TABLE pedidos ADD INDEX IF NOT EXISTS idx_pedidos_cliente (cliente_id);
 ALTER TABLE pedidos ADD INDEX IF NOT EXISTS idx_pedidos_demo (demo);
-ALTER TABLE pedidos ADD CONSTRAINT fk_pedidos_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE SET NULL;
+
+SET @cliente_fk_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.table_constraints
+    WHERE table_schema = DATABASE()
+      AND table_name = 'pedidos'
+      AND constraint_name = 'fk_pedidos_cliente'
+      AND constraint_type = 'FOREIGN KEY'
+);
+SET @cliente_fk_sql = IF(
+    @cliente_fk_exists = 0,
+    'ALTER TABLE pedidos ADD CONSTRAINT fk_pedidos_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE SET NULL',
+    'SELECT 1'
+);
+PREPARE cliente_fk_stmt FROM @cliente_fk_sql;
+EXECUTE cliente_fk_stmt;
+DEALLOCATE PREPARE cliente_fk_stmt;
 
 ALTER TABLE ingredientes ADD COLUMN IF NOT EXISTS tipo_item ENUM('ingrediente','acompanhamento') NOT NULL DEFAULT 'ingrediente';
-ALTER TABLE ingredientes ADD UNIQUE KEY IF NOT EXISTS uq_ingredientes_nome (nome);
+
+SET @ingrediente_index_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.statistics
+    WHERE table_schema = DATABASE()
+      AND table_name = 'ingredientes'
+      AND index_name = 'uq_ingredientes_nome'
+);
+SET @ingrediente_index_sql = IF(
+    @ingrediente_index_exists = 0,
+    'ALTER TABLE ingredientes ADD UNIQUE KEY uq_ingredientes_nome (nome)',
+    'SELECT 1'
+);
+PREPARE ingrediente_index_stmt FROM @ingrediente_index_sql;
+EXECUTE ingrediente_index_stmt;
+DEALLOCATE PREPARE ingrediente_index_stmt;
 
 UPDATE ingredientes
 SET tipo_item = 'acompanhamento'
