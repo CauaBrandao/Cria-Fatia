@@ -60,13 +60,15 @@ $token = gerarCsrfToken();
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-<div class="row justify-content-center py-5">
-    <div class="col-md-5">
-        <div class="card shadow border-0">
-            <div class="card-header bg-dark text-white text-center py-3">
-                <h4 class="mb-0 fw-bold"><i class="bi bi-shield-lock me-2"></i>Acesso Restrito - Cria Fatia</h4>
+<div class="row justify-content-center py-4 py-md-5">
+    <div class="col-lg-5 col-md-7">
+        <div class="card cf-login-card border-0 overflow-hidden">
+            <div class="card-header cf-login-header text-center py-4">
+                <div class="cf-login-icon mx-auto mb-2"><i class="bi bi-shield-lock-fill"></i></div>
+                <h1 class="h4 mb-1 fw-bold">Acesso da equipe</h1>
+                <p class="mb-0">Entre para gerenciar o Cria Fatia</p>
             </div>
-            <div class="card-body p-4">
+            <div class="card-body p-4 p-md-5">
                 <?php if ($erro !== ''): ?>
                     <div class="alert alert-danger" role="alert">
                         <i class="bi bi-exclamation-triangle me-2"></i>
@@ -97,8 +99,8 @@ require_once __DIR__ . '/includes/header.php';
                     </button>
                 </form>
 
-                <div class="mt-4 p-3 bg-light rounded text-center small text-muted border">
-                    <strong class="d-block mb-1 text-dark">
+                <div class="cf-login-access mt-4 p-3 rounded text-center small">
+                    <strong class="d-block mb-2">
                         <i class="bi bi-shield-lock me-1"></i>Acessos do Sistema:
                     </strong>
                     <strong>Administrador:</strong> admin@briafatia.com<br>

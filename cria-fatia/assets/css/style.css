@@ -249,6 +249,72 @@ h1, h2, h3, h4, h5, h6 {
     color: #5f6368;
 }
 
+/* Login da equipe */
+.cf-login-card {
+    border: 1px solid #f1d2b5 !important;
+    box-shadow: 0 18px 45px rgba(96, 44, 8, 0.14) !important;
+}
+.cf-login-header {
+    background: linear-gradient(135deg, #252229 0%, #34261e 58%, #7a2d08 100%) !important;
+    border-bottom: 4px solid var(--primary) !important;
+    color: #ffffff !important;
+}
+.cf-login-header h1 {
+    color: #ffbf57 !important;
+}
+.cf-login-header p {
+    color: #f8e7d2;
+}
+.cf-login-icon {
+    width: 54px;
+    height: 54px;
+    display: grid;
+    place-items: center;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #ffc247, #f57c00);
+    color: #211d1a;
+    font-size: 1.55rem;
+    box-shadow: 0 8px 22px rgba(245, 124, 0, 0.28);
+}
+.cf-login-card .card-body {
+    background: linear-gradient(180deg, #ffffff 0%, #fffaf4 100%);
+}
+.cf-login-card .form-label {
+    color: #392a22;
+}
+.cf-login-access {
+    background: #fff3e0;
+    border: 1px solid #f4c58f;
+    color: #674229;
+}
+.cf-login-access > strong:first-child {
+    color: #8a360d;
+}
+
+@media (max-width: 767.98px) {
+    .cf-features {
+        background: linear-gradient(145deg, #fff8ed 0%, #ffffff 100%);
+        border-color: #f2c998;
+        padding: 1rem !important;
+    }
+    .cf-features > [class*="col-"] {
+        align-items: flex-start !important;
+    }
+    .cf-feature-icon {
+        width: 42px;
+        height: 42px;
+        background: #ffe4bd;
+        color: #a83b00;
+    }
+    .cf-feature-text {
+        color: #5a463a;
+        line-height: 1.35;
+    }
+    .cf-login-card {
+        border-radius: 20px !important;
+    }
+}
+
 /* Linha do tempo de exemplo */
 .cf-timeline {
     display: flex;
